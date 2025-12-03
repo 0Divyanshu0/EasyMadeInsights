@@ -1,0 +1,29 @@
+.upload-box {
+  background: #ffffff;
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.upload-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.upload-sub {
+  color: #6b7280;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.upload-input {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+}
