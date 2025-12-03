@@ -74,6 +74,3 @@ Currently placeholders for:
 | **AI Insights** | OpenAI / LLM integration (future) |
 
 ---
-
-# 📁 Project Structure
-
