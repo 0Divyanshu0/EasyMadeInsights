@@ -1,0 +1,25 @@
+.chart-card {
+  background: #faf7f7;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1f2937;
+}
+
+.chart-body {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #9ca3af;
+  font-size: 14px;
+}

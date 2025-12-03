@@ -1,0 +1,20 @@
+.sheet-selector {
+  margin-top: 20px;
+  background: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
+}
+
+.sheet-selector label {
+  font-size: 14px;
+  margin-right: 10px;
+  color: #374151;
+}
+
+.sheet-selector select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
