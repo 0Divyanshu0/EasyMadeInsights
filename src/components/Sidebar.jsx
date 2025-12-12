@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function Sidebar() {
+  const [activeItem, setActiveItem] = useState("Dashboard");
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -10,10 +12,15 @@ export default function Sidebar() {
 
       <nav>
         <ul>
-          <li className="active">Dashboard</li>
-          <li>Upload</li>
-          <li>Reports</li>
-          <li>About</li>
+          {["Dashboard", "Upload", "Reports", "About"].map((item) => (
+            <li
+              key={item}
+              className={activeItem === item ? "active" : ""}
+              onClick={() => setActiveItem(item)}
+            >
+              {item}
+            </li>
+          ))}
         </ul>
       </nav>
 

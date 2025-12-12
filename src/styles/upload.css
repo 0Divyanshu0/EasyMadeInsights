@@ -1,11 +1,22 @@
 .upload-box {
   background: #ffffff;
-  padding: 28px;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
-  border: 1px dashed rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(22, 28, 37, 0.08);
+  border: 2px dashed #c7cbd3;
   text-align: center;
-  margin-bottom: 24px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.upload-box:hover {
+  border-color: #3b82f6;
+  background: #82868a;
+}
+
+.upload-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
 }
 
 .upload-title {
@@ -16,7 +27,6 @@
 
 .upload-sub {
   color: #6b7280;
-  margin-bottom: 14px;
   font-size: 14px;
 }
 
