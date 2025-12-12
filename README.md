@@ -1,7 +1,7 @@
 <h1 align="center">📊 EasyMadeInsights — Data Insights Made Simple</h1>
 
 <p align="center">
-  <img src="https://via.placeholder.com/200x80?text=EasyMadeInsights+Logo" alt="EasyMadeInsights Logo" width="280">
+  <img src="./EMPS_Logo.png" alt="EasyMadeInsights Logo" height ="1000" width="1000"/>
 </p>
 
 <p align="center">
