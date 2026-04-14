@@ -13,19 +13,21 @@ export default function Sidebar() {
       <nav>
         <ul>
           {["Dashboard", "Upload", "Reports", "About"].map((item) => (
-            <li
-              key={item}
-              className={activeItem === item ? "active" : ""}
-              onClick={() => setActiveItem(item)}
-            >
-              {item}
+            <li key={item}>
+              <button
+                type="button"
+                className={activeItem === item ? "active" : ""}
+                onClick={() => setActiveItem(item)}
+              >
+                {item}
+              </button>
             </li>
           ))}
         </ul>
       </nav>
 
       <div className="sidebar-footer">
-        <small>v0.1 • No login</small>
+        <small>v0.1 | No login</small>
       </div>
     </aside>
   );

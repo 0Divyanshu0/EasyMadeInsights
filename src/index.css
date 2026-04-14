@@ -1,26 +1,28 @@
-/* GLOBAL RESET */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* FULL APP LAYOUT */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #111827;
+  background: #eef2ff;
+}
+
 .layout {
   display: flex;
   height: 100vh;
 }
 
-/* MAIN CONTENT AREA (to the right of sidebar) */
 .main {
   flex: 1;
-  background: #f5f6fa;  /* light grey background so navbar is visible */
+  background: #f5f6fa;
   padding: 24px;
   overflow-y: auto;
   min-height: 100vh;
 }
 
-/* CONTAINER (optional center constraint) */
 .container {
   max-width: 1200px;
   margin: 0 auto;

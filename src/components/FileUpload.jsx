@@ -20,11 +20,20 @@ export default function FileUpload({ handleFile }) {
       className="upload-box drag-drop"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
-      onClick={() => fileInputRef.current.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInputRef.current?.click();
+        }
+      }}
+      onClick={() => fileInputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      aria-label="Upload an Excel file"
     >
-      <p className="upload-icon">📊</p>
-      <p className="upload-title">Drag & Drop your Excel file here</p>
-      <p className="upload-sub">or click to browse (.xlsx, .xls)</p>
+      <p className="upload-badge">Excel Upload</p>
+      <p className="upload-title">Drag and drop your Excel file here</p>
+      <p className="upload-sub">or click to browse .xlsx and .xls files</p>
 
       <input
         ref={fileInputRef}

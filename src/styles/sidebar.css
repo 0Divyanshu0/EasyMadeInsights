@@ -27,29 +27,43 @@
 }
 
 .sidebar nav ul li {
-  padding: 10px 8px;
-  border-radius: 8px;
   margin-bottom: 8px;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.9);
 }
 
-.sidebar nav ul li:hover {
+.sidebar nav ul li button {
+  width: 100%;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sidebar nav ul li button:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.sidebar nav ul li.active {
+.sidebar nav ul li button.active {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.04),
     rgba(255, 255, 255, 0.02)
   );
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-   font-weight: 600;
+  font-weight: 600;
   border-left: 4px solid #ffffff;
 }
 
 .sidebar-footer {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 960px) {
+  .sidebar {
+    display: none;
+  }
 }
