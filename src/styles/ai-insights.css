@@ -1,0 +1,101 @@
+.ai-panel {
+  display: grid;
+  gap: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 96%, transparent),
+    color-mix(in srgb, var(--primary) 8%, var(--surface))
+  );
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--panel-border));
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.ai-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.ai-panel-header h3 {
+  font-size: 24px;
+  color: var(--text);
+}
+
+.ai-panel-copy {
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-btn.primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.ai-output-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ai-card {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.ai-card-wide {
+  grid-column: 1 / -1;
+}
+
+.ai-card-label {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.ai-card p {
+  color: var(--text-soft);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+@media (max-width: 960px) {
+  .ai-panel-header {
+    flex-direction: column;
+  }
+
+  .ai-output-grid {
+    grid-template-columns: 1fr;
+  }
+}

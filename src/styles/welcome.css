@@ -1,0 +1,128 @@
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.2), transparent 22%),
+    rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(14px);
+}
+
+.welcome-card {
+  width: min(640px, 100%);
+  padding: 32px;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(37, 99, 235, 0.88));
+  color: #ffffff;
+  box-shadow: 0 30px 80px rgba(2, 6, 23, 0.45);
+}
+
+.welcome-graphic {
+  position: relative;
+  overflow: hidden;
+  height: 260px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(2px);
+  animation: float 6s ease-in-out infinite;
+}
+
+.orb-one {
+  width: 120px;
+  height: 120px;
+  background: rgba(125, 211, 252, 0.45);
+  top: 20px;
+  left: 24px;
+}
+
+.orb-two {
+  width: 84px;
+  height: 84px;
+  background: rgba(191, 219, 254, 0.35);
+  top: 72px;
+  right: 52px;
+  animation-delay: 1s;
+}
+
+.orb-three {
+  width: 64px;
+  height: 64px;
+  background: rgba(96, 165, 250, 0.45);
+  top: 28px;
+  right: 140px;
+  animation-delay: 2s;
+}
+
+.welcome-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), transparent);
+}
+
+.welcome-logo {
+  position: absolute;
+  inset: 18px;
+  width: calc(100% - 36px);
+  height: calc(100% - 36px);
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 16px 24px rgba(15, 23, 42, 0.18));
+}
+
+.welcome-card h1 {
+  font-size: clamp(34px, 6vw, 54px);
+  line-height: 1;
+}
+
+.welcome-copy {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.7;
+  font-size: 15px;
+  max-width: 520px;
+}
+
+.welcome-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.welcome-points span {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+}
+
+.welcome-btn {
+  margin-top: 24px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-10px);
+  }
+}

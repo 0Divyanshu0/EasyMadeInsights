@@ -1,33 +1,39 @@
-import React, { useState } from "react";
+const NAV_ITEMS = [
+  { id: "upload", label: "Upload" },
+  { id: "overview", label: "Overview" },
+  { id: "visual-builder", label: "Visual Builder" },
+  { id: "preview", label: "Preview" },
+  { id: "insights", label: "Insights" },
+];
 
-export default function Sidebar() {
-  const [activeItem, setActiveItem] = useState("Dashboard");
-
+export default function Sidebar({ activeSection, onNavigate }) {
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <h1>EasyMadeInsights</h1>
-        <small>Beta</small>
+      <div>
+        <div className="brand">
+          <h1>EasyMadeInsights</h1>
+          <small>Beta</small>
+        </div>
+
+        <nav>
+          <ul>
+            {NAV_ITEMS.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={activeSection === item.id ? "active" : ""}
+                  onClick={() => onNavigate(item.id)}
+                >
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
 
-      <nav>
-        <ul>
-          {["Dashboard", "Upload", "Reports", "About"].map((item) => (
-            <li key={item}>
-              <button
-                type="button"
-                className={activeItem === item ? "active" : ""}
-                onClick={() => setActiveItem(item)}
-              >
-                {item}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
       <div className="sidebar-footer">
-        <small>v0.1 | No login</small>
+        <small>v0.1 | Custom reporting mode</small>
       </div>
     </aside>
   );

@@ -1,25 +1,79 @@
 .chart-card {
-  background: #faf7f7;
+  background: var(--panel);
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(22, 28, 37, 0.06);
-  min-height: 260px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  min-height: 340px;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--panel-border);
+}
+
+.chart-header {
+  margin-bottom: 12px;
 }
 
 .chart-title {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 12px;
-  color: #1f2937;
+  color: var(--text);
+}
+
+.chart-subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .chart-body {
   flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #9ca3af;
+  min-height: 280px;
+  color: var(--text-soft);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.recharts-responsive-container {
+  min-height: 280px;
+}
+
+.chart-flex {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 18px;
+  width: 100%;
+  align-items: center;
+}
+
+.mini-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-legend-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.mini-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.mini-legend-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .chart-flex {
+    grid-template-columns: 1fr;
+  }
 }
