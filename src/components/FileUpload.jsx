@@ -32,13 +32,13 @@ export default function FileUpload({ handleFile }) {
       aria-label="Upload an Excel file"
     >
       <p className="upload-badge">Excel Upload</p>
-      <p className="upload-title">Drag and drop your Excel file here</p>
-      <p className="upload-sub">or click to browse .xlsx and .xls files</p>
+      <p className="upload-title">Drag and drop your data file here</p>
+      <p className="upload-sub">or click to browse .xlsx, .xls, .csv, .tsv, and .json files</p>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.csv,.tsv,.json"
         onChange={handleFile}
         hidden
       />

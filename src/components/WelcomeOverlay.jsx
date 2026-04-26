@@ -1,4 +1,4 @@
-export default function WelcomeOverlay({ visible, onDismiss }) {
+export default function WelcomeOverlay({ visible, onDismiss, logo = "/easy-made-insights-logo.png", title = "EasyMadeInsights", description = "Upload spreadsheets, review clean business dashboards, and explore insights without the usual Excel friction.", features = ["Workbook parsing", "Interactive charts", "Professional summaries"], buttonText = "Enter Dashboard" }) {
   if (!visible) {
     return null;
   }
@@ -13,26 +13,25 @@ export default function WelcomeOverlay({ visible, onDismiss }) {
           <div className="welcome-grid"></div>
           <img
             className="welcome-logo"
-            src="/easy-made-insights-logo.png"
-            alt="EasyMadeInsights logo"
+            src={logo}
+            alt={`${title} logo`}
           />
         </div>
 
         <p className="eyebrow">Welcome</p>
-        <h1>EasyMadeInsights</h1>
+        <h1>{title}</h1>
         <p className="welcome-copy">
-          Upload spreadsheets, review clean business dashboards, and explore
-          insights without the usual Excel friction.
+          {description}
         </p>
 
         <div className="welcome-points">
-          <span>Workbook parsing</span>
-          <span>Interactive charts</span>
-          <span>Professional summaries</span>
+          {features.map((feature, index) => (
+            <span key={index}>{feature}</span>
+          ))}
         </div>
 
         <button type="button" className="welcome-btn" onClick={onDismiss}>
-          Enter Dashboard
+          {buttonText}
         </button>
       </div>
     </div>

@@ -25,6 +25,7 @@ import SheetSelector from "../components/SheetSelector.jsx";
 import {
   analyzeSheet,
   buildWorkbookSummary,
+  cleanRows,
   formatMetricDisplay,
   parseDateValue,
   parseNumericValue,
@@ -347,13 +348,13 @@ export default function Dashboard({ onSectionChange }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+    const isSupported = /\.(xlsx|xls|csv|tsv|json)$/i.test(file.name);
 
-    if (!isExcel) {
+    if (!isSupported) {
       setSelectedFile(null);
       setWorkbookData(null);
       setSelectedSheet("");
-      setMessage("Invalid file format. Please upload an Excel file.");
+      setMessage("Invalid file format. Please upload an Excel, CSV, TSV, or JSON file.");
       setMessageType("error");
       return;
     }
@@ -361,8 +362,23 @@ export default function Dashboard({ onSectionChange }) {
     try {
       setLoading(true);
 
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      let workbook;
+      if (file.name.endsWith(".json")) {
+        const text = await file.text();
+        const rows = JSON.parse(text);
+        if (!Array.isArray(rows)) {
+          throw new Error("JSON file must contain an array of objects.");
+        }
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        workbook = { SheetNames: ['Sheet1'], Sheets: { Sheet1: worksheet } };
+      } else if (file.name.endsWith(".csv") || file.name.endsWith(".tsv")) {
+        const text = await file.text();
+        const delimiter = file.name.endsWith(".tsv") ? '\t' : ',';
+        workbook = XLSX.read(text, { type: "string", cellDates: true, FS: delimiter });
+      } else {
+        const buffer = await file.arrayBuffer();
+        workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      }
 
       const sheets = Object.fromEntries(
         workbook.SheetNames.map((sheetName) => {
@@ -372,7 +388,9 @@ export default function Dashboard({ onSectionChange }) {
             raw: true,
           });
 
-          return [sheetName, analyzeSheet(sheetName, rows)];
+          const cleanedRows = cleanRows(rows);
+
+          return [sheetName, analyzeSheet(sheetName, cleanedRows)];
         })
       );
 

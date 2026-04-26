@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
+import EasyMadeConversions from "./pages/EasyMadeConversions";
 import WelcomeOverlay from "./components/WelcomeOverlay";
 
 import "./styles/sidebar.css";
@@ -14,6 +16,8 @@ import "./styles/loader.css";
 import "./styles/sheetselector.css";
 import "./styles/ai-insights.css";
 import "./styles/welcome.css";
+import "./styles/conversions.css";
+import "./styles/tools.css";
 
 const THEME_KEY = "easy-made-insights-theme";
 
@@ -47,7 +51,7 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <BrowserRouter>
       <WelcomeOverlay
         visible={showWelcome}
         onDismiss={() => setShowWelcome(false)}
@@ -73,9 +77,12 @@ export default function App() {
               )
             }
           />
-          <Dashboard onSectionChange={setActiveSection} />
+          <Routes>
+            <Route path="/" element={<Dashboard onSectionChange={setActiveSection} />} />
+            <Route path="/conversions" element={<EasyMadeConversions />} />
+          </Routes>
         </div>
       </div>
-    </>
+    </BrowserRouter>
   );
 }

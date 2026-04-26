@@ -2,6 +2,94 @@ const MAX_BAR_POINTS = 8;
 const MAX_LINE_POINTS = 12;
 const MAX_PIE_POINTS = 5;
 
+export function cleanRows(rows) {
+  if (!rows.length) return rows;
+
+  // Remove rows where all values are null/undefined/empty
+  let cleaned = rows.filter((row) =>
+    Object.values(row).some(
+      (val) => val !== null && val !== undefined && val !== ""
+    )
+  );
+
+  if (!cleaned.length) return cleaned;
+
+  // Get all columns
+  const columns = Object.keys(cleaned[0]);
+
+  // For each column, determine type and clean
+  columns.forEach((col) => {
+    const values = cleaned
+      .map((row) => row[col])
+      .filter((val) => val !== null && val !== undefined && val !== "");
+
+    if (values.length === 0) return;
+
+    const isNumeric = values.every(
+      (val) => typeof val === "number" || (!isNaN(Number(val)) && val !== "")
+    );
+
+    if (isNumeric) {
+      // Fill missing with mean
+      const nums = values.map((v) => Number(v)).filter((n) => !isNaN(n));
+      const mean = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+
+      cleaned.forEach((row) => {
+        if (
+          row[col] === null ||
+          row[col] === undefined ||
+          row[col] === "" ||
+          isNaN(Number(row[col]))
+        ) {
+          row[col] = mean;
+        } else {
+          row[col] = Number(row[col]);
+        }
+      });
+    } else {
+      // Categorical: fill with mode or "Unknown"
+      const freq = {};
+      values.forEach((v) => {
+        const str = String(v).trim();
+        freq[str] = (freq[str] || 0) + 1;
+      });
+      const mode =
+        Object.keys(freq).reduce((a, b) => (freq[a] > freq[b] ? a : b), null) ||
+        "Unknown";
+
+      cleaned.forEach((row) => {
+        if (
+          row[col] === null ||
+          row[col] === undefined ||
+          row[col] === ""
+        ) {
+          row[col] = mode;
+        } else {
+          row[col] = String(row[col]).trim();
+        }
+      });
+    }
+  });
+
+  // Remove duplicate rows
+  const seen = new Set();
+  cleaned = cleaned.filter((row) => {
+    const key = JSON.stringify(
+      Object.keys(row)
+        .sort()
+        .reduce((obj, key) => {
+          obj[key] = row[key];
+          return obj;
+        }, {})
+    );
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return cleaned;
+}
+
 function isCurrencyLike(columnName) {
   return /revenue|sales|profit|amount|price|cost|spend|income|expense/i.test(
     columnName ?? ""
