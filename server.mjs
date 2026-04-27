@@ -13,7 +13,7 @@ dotenv.config({ path: envPath });
 
 const app = express();
 const port = process.env.PORT || 8787;
-const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -47,87 +47,52 @@ app.post("/api/ai-insights", async (req, res) => {
   }
 
   try {
-    const response = await openai.responses.create({
+    const response = await openai.chat.completions.create({
       model,
-      reasoning: { effort: "low" },
-      input: [
+      messages: [
         {
           role: "system",
-          content: [
-            {
-              type: "input_text",
-              text:
-                "You are a professional business analyst. Produce concise executive-ready spreadsheet insights using only the provided workbook summary. Do not fabricate facts. If data quality is limited, say so briefly and continue with the strongest grounded observations.",
-            },
-          ],
+          content:
+            "You are a professional business analyst. Produce concise executive-ready spreadsheet insights using only the provided workbook summary. Do not fabricate facts. If data quality is limited, say so briefly and continue with the strongest grounded observations. Respond with valid JSON in this exact format: {\"executive_summary\": \"string\", \"key_insights\": [\"string1\", \"string2\", \"string3\"], \"risks_and_opportunities\": [\"string1\", \"string2\"], \"recommended_actions\": [\"string1\", \"string2\"]}",
         },
         {
           role: "user",
-          content: [
+          content: JSON.stringify(
             {
-              type: "input_text",
-              text: JSON.stringify(
-                {
-                  workbook_name: workbookName,
-                  active_sheet: sheetName,
-                  analysis_summary: summary,
-                },
-                null,
-                2
-              ),
+              workbook_name: workbookName,
+              active_sheet: sheetName,
+              analysis_summary: summary,
             },
-          ],
+            null,
+            2
+          ),
         },
       ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "sheet_ai_insights",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              executive_summary: { type: "string" },
-              key_insights: {
-                type: "array",
-                items: { type: "string" },
-                minItems: 3,
-                maxItems: 3,
-              },
-              risks_and_opportunities: {
-                type: "array",
-                items: { type: "string" },
-                minItems: 2,
-                maxItems: 2,
-              },
-              recommended_actions: {
-                type: "array",
-                items: { type: "string" },
-                minItems: 2,
-                maxItems: 2,
-              },
-            },
-            required: [
-              "executive_summary",
-              "key_insights",
-              "risks_and_opportunities",
-              "recommended_actions",
-            ],
-          },
-        },
-      },
+      temperature: 0.7,
+      max_tokens: 1000,
     });
 
-    if (!response.output_text) {
+    if (!response.choices || !response.choices[0] || !response.choices[0].message) {
       return res.status(502).json({
-        error: "The AI service returned an empty response.",
+        error: "The AI service returned an invalid response.",
+      });
+    }
+
+    const content = response.choices[0].message.content;
+    let insights;
+
+    try {
+      insights = JSON.parse(content);
+    } catch (parseError) {
+      console.error("Failed to parse AI response as JSON:", content);
+      return res.status(502).json({
+        error: "The AI service returned invalid JSON.",
       });
     }
 
     return res.json({
       model,
-      insights: JSON.parse(response.output_text),
+      insights,
     });
   } catch (error) {
     console.error("AI insight generation failed:", error);

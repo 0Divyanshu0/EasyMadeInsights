@@ -62,6 +62,9 @@ export default function ImageConverter({ convertFrom, convertTo }) {
 
           URL.revokeObjectURL(url);
           setIsConverting(false);
+
+          // Show success message
+          alert(`Image converted successfully! Downloaded as converted-image.${ext}`);
         }, `image/${convertTo === "favicon" ? "x-icon" : convertTo}`);
       };
       img.onerror = () => {

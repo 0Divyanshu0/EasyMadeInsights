@@ -33,7 +33,7 @@ function getInitialTheme() {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState(getInitialTheme());
   const [showWelcome, setShowWelcome] = useState(true);
   const [activeSection, setActiveSection] = useState("upload");
 

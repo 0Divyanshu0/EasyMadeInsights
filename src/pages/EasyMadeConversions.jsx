@@ -12,6 +12,13 @@ const tools = [
     icon: "📄",
   },
   {
+    id: "word-to-pdf",
+    name: "Word to PDF Converter",
+    description: "Convert Word documents to PDF format",
+    category: "File Tools",
+    icon: "📄",
+  },
+  {
     id: "file-compare",
     name: "File Comparison Tool",
     description: "Compare files with GitHub-style diff view",
@@ -86,7 +93,7 @@ export default function EasyMadeConversions() {
         logo="/EasyMadeConversion_logo.png"
         title="EasyMadeConversion"
         description="Powerful tools for file conversion and development. Transform your files with ease."
-        features={["PDF to Word", "Image conversion", "Developer utilities"]}
+        features={["PDF to Word", "Word to PDF", "Image conversion", "Developer utilities"]}
         buttonText="Enter Tools"
       />
       <div className="conversions-page">

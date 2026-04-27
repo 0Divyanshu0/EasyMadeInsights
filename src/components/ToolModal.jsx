@@ -2,6 +2,7 @@ import JWTDecoder from "./tools/JWTDecoder";
 import ImageConverter from "./tools/ImageConverter";
 import FileComparison from "./tools/FileComparison";
 import PDFToWord from "./tools/PDFToWord";
+import WordToPDF from "./tools/WordToPDF";
 
 export default function ToolModal({ tool, isOpen, onClose }) {
   if (!isOpen || !tool) {
@@ -22,6 +23,8 @@ export default function ToolModal({ tool, isOpen, onClose }) {
         return <FileComparison />;
       case "pdf-to-word":
         return <PDFToWord />;
+      case "word-to-pdf":
+        return <WordToPDF />;
       default:
         return <div>Tool not implemented yet</div>;
     }
