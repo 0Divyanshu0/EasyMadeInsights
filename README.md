@@ -186,26 +186,12 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 🙏 Acknowledgments
 
 - [SheetJS](https://sheetjs.com/) for Excel parsing
 - [Recharts](https://recharts.org/) for charting library
 - [OpenAI](https://openai.com/) for AI capabilities
 - [Firebase](https://firebase.google.com/) for hosting
-
----
-
-## 📞 Support
-
-- 📧 **Email**: support@easymadeinsights.com
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/EasyMadeInsights/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/EasyMadeInsights/discussions)
 
 ---
 
