@@ -4,6 +4,7 @@ export default function ImageConverter({ convertFrom, convertTo }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [isConverting, setIsConverting] = useState(false);
 
   const handleFileSelect = (e) => {
@@ -17,6 +18,7 @@ export default function ImageConverter({ convertFrom, convertTo }) {
     }
 
     setError("");
+    setMessage("");
     setFile(selectedFile);
 
     const reader = new FileReader();
@@ -34,6 +36,7 @@ export default function ImageConverter({ convertFrom, convertTo }) {
 
     setIsConverting(true);
     setError("");
+    setMessage("");
 
     try {
       const img = new Image();
@@ -62,9 +65,7 @@ export default function ImageConverter({ convertFrom, convertTo }) {
 
           URL.revokeObjectURL(url);
           setIsConverting(false);
-
-          // Show success message
-          alert(`Image converted successfully! Downloaded as converted-image.${ext}`);
+          setMessage(`Image converted successfully. Downloaded as converted-image.${ext}.`);
         }, `image/${convertTo === "favicon" ? "x-icon" : convertTo}`);
       };
       img.onerror = () => {
@@ -102,6 +103,7 @@ export default function ImageConverter({ convertFrom, convertTo }) {
       )}
 
       {error && <div className="error-message">{error}</div>}
+      {message && <div className="info-message">{message}</div>}
 
       <button
         className="convert-btn"

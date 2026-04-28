@@ -35,11 +35,11 @@ export default function ToolModal({ tool, isOpen, onClose }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{tool.name}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={onClose} aria-label="Close tool">
+            x
+          </button>
         </div>
-        <div className="modal-body">
-          {renderTool()}
-        </div>
+        <div className="modal-body">{renderTool()}</div>
       </div>
     </div>
   );

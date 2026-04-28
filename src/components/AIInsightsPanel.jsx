@@ -25,7 +25,7 @@ export default function AIInsightsPanel({ onNotify, disabled }) {
 
       <div className="ai-output-grid">
         <article className="ai-card ai-card-wide">
-          <span className="ai-card-label">What’s Planned</span>
+          <span className="ai-card-label">What's Planned</span>
           <p>
             AI summary is being prepared as a premium polish layer on top of the
             workbook analytics already visible in the dashboard.

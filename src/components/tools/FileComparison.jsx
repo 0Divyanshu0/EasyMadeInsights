@@ -1,4 +1,71 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+
+const normalizeText = (text) => text.replace(/\r/g, "");
+
+const computeWordDiff = (oldText, newText) => {
+  const oldWords = oldText.split(/\s+/).filter((word) => word);
+  const newWords = newText.split(/\s+/).filter((word) => word);
+  const result = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < oldWords.length || j < newWords.length) {
+    if (i < oldWords.length && j < newWords.length && oldWords[i] === newWords[j]) {
+      result.push({ text: oldWords[i], type: "same" });
+      i++;
+      j++;
+    } else {
+      if (i < oldWords.length && (j >= newWords.length || oldWords[i] !== newWords[j])) {
+        result.push({ text: oldWords[i], type: "removed" });
+        i++;
+      }
+
+      if (j < newWords.length && (i >= oldWords.length || newWords[j] !== oldWords[i])) {
+        result.push({ text: newWords[j], type: "added" });
+        j++;
+      }
+    }
+  }
+
+  return result;
+};
+
+const computeDiff = (leftText, rightText) => {
+  const leftLines = normalizeText(leftText).split("\n");
+  const rightLines = normalizeText(rightText).split("\n");
+  const maxLines = Math.max(leftLines.length, rightLines.length);
+  const diffs = [];
+
+  for (let i = 0; i < maxLines; i++) {
+    const leftLine = leftLines[i] ?? "";
+    const rightLine = rightLines[i] ?? "";
+    let type = "same";
+    let wordDiff = null;
+
+    if (leftLine === rightLine) {
+      type = "same";
+    } else if (!leftLine && rightLine) {
+      type = "added";
+    } else if (leftLine && !rightLine) {
+      type = "removed";
+    } else {
+      type = "modified";
+      wordDiff = computeWordDiff(leftLine, rightLine);
+    }
+
+    diffs.push({
+      line: i + 1,
+      leftNumber: leftLine ? i + 1 : null,
+      rightNumber: rightLine ? i + 1 : null,
+      leftLine,
+      rightLine,
+      type,
+      wordDiff,
+    });
+  }
+
+  return diffs;
+};
 
 export default function FileComparison() {
   const [mode, setMode] = useState("paste");
@@ -7,9 +74,6 @@ export default function FileComparison() {
   const [content1, setContent1] = useState("");
   const [content2, setContent2] = useState("");
   const [error, setError] = useState("");
-  const [diff, setDiff] = useState([]);
-
-  const normalizeText = (text) => text.replace(/\r/g, "");
 
   const handleFileSelect = async (e, fileNum) => {
     const file = e.target.files?.[0];
@@ -30,74 +94,12 @@ export default function FileComparison() {
     }
   };
 
-  const computeWordDiff = (oldText, newText) => {
-    const oldWords = oldText.split(/\s+/).filter(w => w);
-    const newWords = newText.split(/\s+/).filter(w => w);
-    const result = [];
-    let i = 0, j = 0;
-
-    while (i < oldWords.length || j < newWords.length) {
-      if (i < oldWords.length && j < newWords.length && oldWords[i] === newWords[j]) {
-        result.push({ text: oldWords[i], type: 'same' });
-        i++;
-        j++;
-      } else {
-        // Check for removed word
-        if (i < oldWords.length && (j >= newWords.length || oldWords[i] !== newWords[j])) {
-          result.push({ text: oldWords[i], type: 'removed' });
-          i++;
-        }
-        // Check for added word
-        if (j < newWords.length && (i >= oldWords.length || newWords[j] !== oldWords[i])) {
-          result.push({ text: newWords[j], type: 'added' });
-          j++;
-        }
-      }
-    }
-    return result;
-  };
-
-  const computeDiff = (leftText, rightText) => {
-    const leftLines = normalizeText(leftText).split("\n");
-    const rightLines = normalizeText(rightText).split("\n");
-    const maxLines = Math.max(leftLines.length, rightLines.length);
-    const diffs = [];
-
-    for (let i = 0; i < maxLines; i++) {
-      const leftLine = leftLines[i] ?? "";
-      const rightLine = rightLines[i] ?? "";
-      let type = "same";
-      let wordDiff = null;
-
-      if (leftLine === rightLine) {
-        type = "same";
-      } else if (!leftLine && rightLine) {
-        type = "added";
-      } else if (leftLine && !rightLine) {
-        type = "removed";
-      } else {
-        type = "modified";
-        wordDiff = computeWordDiff(leftLine, rightLine);
-      }
-
-      diffs.push({
-        line: i + 1,
-        leftNumber: leftLine ? i + 1 : null,
-        rightNumber: rightLine ? i + 1 : null,
-        leftLine,
-        rightLine,
-        type,
-        wordDiff,
-      });
+  const diff = useMemo(() => {
+    if (!content1 && !content2) {
+      return [];
     }
 
-    return diffs;
-  };
-
-  useEffect(() => {
-    if (content1 || content2) {
-      setDiff(computeDiff(content1, content2));
-    }
+    return computeDiff(content1, content2);
   }, [content1, content2]);
 
   const handleCompare = () => {
@@ -106,7 +108,6 @@ export default function FileComparison() {
       return;
     }
 
-    setDiff(computeDiff(content1, content2));
     setError("");
   };
 

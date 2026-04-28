@@ -19,6 +19,28 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+function extractJsonObject(content) {
+  if (!content) {
+    return "";
+  }
+
+  const trimmed = content.trim();
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+
+  if (fencedMatch) {
+    return fencedMatch[1].trim();
+  }
+
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+
+  return trimmed;
+}
+
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
@@ -78,7 +100,7 @@ app.post("/api/ai-insights", async (req, res) => {
       });
     }
 
-    const content = response.choices[0].message.content;
+    const content = extractJsonObject(response.choices[0].message.content);
     let insights;
 
     try {

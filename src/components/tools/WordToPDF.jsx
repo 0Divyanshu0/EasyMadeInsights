@@ -1,12 +1,13 @@
 import { useState } from "react";
 import * as mammoth from "mammoth";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 export default function WordToPDF() {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isConverting, setIsConverting] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
   const [previewText, setPreviewText] = useState("");
 
   const handleFileSelect = async (e) => {
@@ -58,7 +59,7 @@ export default function WordToPDF() {
       }
 
       // Create PDF using jsPDF with HTML
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
       // Add title
       pdf.setFontSize(16);
@@ -78,13 +79,14 @@ export default function WordToPDF() {
         windowWidth: 650
       });
 
-      // Download the PDF
-      pdf.save(file.name.replace(/\.(doc|docx)$/i, ".pdf"));
+      const outputName = file.name.replace(/\.(doc|docx)$/i, ".pdf");
 
-      setMessage("Word document successfully converted to PDF!");
+      pdf.save(outputName);
+
+      setMessage(`Word document converted successfully. Downloaded as ${outputName}.`);
       setFile(null);
       setPreviewHtml("");
-      alert(`Word document converted successfully! Downloaded as ${file.name.replace(/\.(doc|docx)$/i, ".pdf")}`);
+      setPreviewText("");
 
     } catch (err) {
       console.error("Conversion error:", err);
@@ -141,8 +143,8 @@ export default function WordToPDF() {
 
       <div className="info-box">
         <p>
-          <strong>Note:</strong> This tool extracts text content from Word documents and creates a PDF.
-          Complex formatting, images, and tables may not be preserved.
+          <strong>Note:</strong> This tool converts Word documents to PDF with formatting preserved.
+          Complex layouts may require manual adjustment in the output.
         </p>
       </div>
     </div>

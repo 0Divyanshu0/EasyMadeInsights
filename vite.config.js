@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react({
     jsxRuntime: 'automatic'
   })],
+  optimizeDeps: {
+    exclude: ["pdf-parse"],
+  },
   server: {
     proxy: {
       "/api": {

@@ -1,6 +1,20 @@
 import { useState } from "react";
-import * as pdfParse from "pdf-parse";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorkerSrc from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
 import { Document, Packer, Paragraph, TextRun } from "docx";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
+
+const extractTextFromPDF = async (arrayBuffer) => {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    text += textContent.items.map(item => item.str).join("") + "\n";
+  }
+  return text;
+};
 
 export default function PDFToWord() {
   const [file, setFile] = useState(null);
@@ -25,8 +39,8 @@ export default function PDFToWord() {
     try {
       // Extract text for preview
       const arrayBuffer = await selectedFile.arrayBuffer();
-      const data = await pdfParse(new Uint8Array(arrayBuffer));
-      setPreviewText(data.text);
+      const text = await extractTextFromPDF(arrayBuffer);
+      setPreviewText(text);
     } catch (err) {
       setError("Failed to preview PDF: " + err.message);
     }
@@ -45,10 +59,7 @@ export default function PDFToWord() {
     try {
       // Read the PDF file
       const arrayBuffer = await file.arrayBuffer();
-      const data = await pdfParse(new Uint8Array(arrayBuffer));
-
-      // Extract text content
-      const textContent = data.text;
+      const textContent = await extractTextFromPDF(arrayBuffer);
 
       if (!textContent.trim()) {
         throw new Error("No text content found in the PDF. The PDF might contain only images.");
@@ -124,17 +135,18 @@ export default function PDFToWord() {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       });
 
-      // Download the Word document
+      const outputName = file.name.replace(".pdf", ".docx");
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = file.name.replace(".pdf", ".docx");
+      link.download = outputName;
       link.click();
       URL.revokeObjectURL(url);
 
-      setMessage("PDF successfully converted to Word document!");
+      setMessage(`PDF converted successfully. Downloaded as ${outputName}.`);
       setFile(null);
-      alert(`PDF converted successfully! Downloaded as ${file.name.replace(".pdf", ".docx")}`);
+      setPreviewText("");
 
     } catch (err) {
       console.error("Conversion error:", err);
