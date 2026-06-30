@@ -63,17 +63,17 @@ export default function JWTDecoder() {
 
       {decoded && (
         <div className="decoded-section">
-          <div className="decoded-part">
+          <div className="decoded-part jwt-header">
             <h4>Header</h4>
             <pre>{JSON.stringify(decoded.header, null, 2)}</pre>
           </div>
 
-          <div className="decoded-part">
+          <div className="decoded-part jwt-payload">
             <h4>Payload</h4>
             <pre>{JSON.stringify(decoded.payload, null, 2)}</pre>
           </div>
 
-          <div className="decoded-part">
+          <div className="decoded-part jwt-signature">
             <h4>Signature</h4>
             <pre>{decoded.signature}</pre>
           </div>

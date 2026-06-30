@@ -2,69 +2,164 @@ import { useMemo, useState } from "react";
 
 const normalizeText = (text) => text.replace(/\r/g, "");
 
-const computeWordDiff = (oldText, newText) => {
-  const oldWords = oldText.split(/\s+/).filter((word) => word);
-  const newWords = newText.split(/\s+/).filter((word) => word);
-  const result = [];
-  let i = 0;
-  let j = 0;
+const buildWordDiff = (leftText, rightText) => {
+  const leftWords = leftText.split(/\s+/).filter(Boolean);
+  const rightWords = rightText.split(/\s+/).filter(Boolean);
+  const m = leftWords.length;
+  const n = rightWords.length;
 
-  while (i < oldWords.length || j < newWords.length) {
-    if (i < oldWords.length && j < newWords.length && oldWords[i] === newWords[j]) {
-      result.push({ text: oldWords[i], type: "same" });
-      i++;
-      j++;
-    } else {
-      if (i < oldWords.length && (j >= newWords.length || oldWords[i] !== newWords[j])) {
-        result.push({ text: oldWords[i], type: "removed" });
-        i++;
-      }
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
 
-      if (j < newWords.length && (i >= oldWords.length || newWords[j] !== oldWords[i])) {
-        result.push({ text: newWords[j], type: "added" });
-        j++;
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      if (leftWords[i] === rightWords[j]) {
+        dp[i][j] = 1 + dp[i + 1][j + 1];
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
       }
     }
   }
 
-  return result;
+  const leftTokens = [];
+  const rightTokens = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < m && j < n) {
+    if (leftWords[i] === rightWords[j]) {
+      leftTokens.push({ text: leftWords[i], type: "same" });
+      rightTokens.push({ text: rightWords[j], type: "same" });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      leftTokens.push({ text: leftWords[i], type: "removed" });
+      i++;
+    } else {
+      rightTokens.push({ text: rightWords[j], type: "added" });
+      j++;
+    }
+  }
+
+  while (i < m) {
+    leftTokens.push({ text: leftWords[i], type: "removed" });
+    i++;
+  }
+
+  while (j < n) {
+    rightTokens.push({ text: rightWords[j], type: "added" });
+    j++;
+  }
+
+  return { leftTokens, rightTokens };
 };
 
 const computeDiff = (leftText, rightText) => {
   const leftLines = normalizeText(leftText).split("\n");
   const rightLines = normalizeText(rightText).split("\n");
-  const maxLines = Math.max(leftLines.length, rightLines.length);
-  const diffs = [];
+  const m = leftLines.length;
+  const n = rightLines.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
 
-  for (let i = 0; i < maxLines; i++) {
-    const leftLine = leftLines[i] ?? "";
-    const rightLine = rightLines[i] ?? "";
-    let type = "same";
-    let wordDiff = null;
-
-    if (leftLine === rightLine) {
-      type = "same";
-    } else if (!leftLine && rightLine) {
-      type = "added";
-    } else if (leftLine && !rightLine) {
-      type = "removed";
-    } else {
-      type = "modified";
-      wordDiff = computeWordDiff(leftLine, rightLine);
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      if (leftLines[i] === rightLines[j]) {
+        dp[i][j] = 1 + dp[i + 1][j + 1];
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
     }
-
-    diffs.push({
-      line: i + 1,
-      leftNumber: leftLine ? i + 1 : null,
-      rightNumber: rightLine ? i + 1 : null,
-      leftLine,
-      rightLine,
-      type,
-      wordDiff,
-    });
   }
 
-  return diffs;
+  const raw = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (leftLines[i] === rightLines[j]) {
+      raw.push({
+        type: "same",
+        leftLine: leftLines[i],
+        rightLine: rightLines[j],
+        leftNumber: i + 1,
+        rightNumber: j + 1,
+      });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      raw.push({
+        type: "removed",
+        leftLine: leftLines[i],
+        rightLine: "",
+        leftNumber: i + 1,
+        rightNumber: null,
+      });
+      i++;
+    } else {
+      raw.push({
+        type: "added",
+        leftLine: "",
+        rightLine: rightLines[j],
+        leftNumber: null,
+        rightNumber: j + 1,
+      });
+      j++;
+    }
+  }
+
+  while (i < m) {
+    raw.push({
+      type: "removed",
+      leftLine: leftLines[i],
+      rightLine: "",
+      leftNumber: i + 1,
+      rightNumber: null,
+    });
+    i++;
+  }
+
+  while (j < n) {
+    raw.push({
+      type: "added",
+      leftLine: "",
+      rightLine: rightLines[j],
+      leftNumber: null,
+      rightNumber: j + 1,
+    });
+    j++;
+  }
+
+  const diffs = [];
+  for (let k = 0; k < raw.length; k++) {
+    const current = raw[k];
+    if (
+      current.type === "removed" &&
+      raw[k + 1] &&
+      raw[k + 1].type === "added"
+    ) {
+      const next = raw[k + 1];
+      const diffTokens = buildWordDiff(current.leftLine, next.rightLine);
+      diffs.push({
+        type: "modified",
+        leftLine: current.leftLine,
+        rightLine: next.rightLine,
+        leftNumber: current.leftNumber,
+        rightNumber: next.rightNumber,
+        leftTokens: diffTokens.leftTokens,
+        rightTokens: diffTokens.rightTokens,
+      });
+      k++;
+    } else {
+      diffs.push({
+        ...current,
+        leftTokens: null,
+        rightTokens: null,
+      });
+    }
+  }
+
+  return diffs.map((item, index) => ({
+    line: index + 1,
+    ...item,
+  }));
 };
 
 export default function FileComparison() {
@@ -80,7 +175,10 @@ export default function FileComparison() {
     if (!file) return;
 
     try {
+      console.log(`📁 FileComparison: Reading file ${fileNum}: ${file.name}`);
       const text = normalizeText(await file.text());
+      console.log(`✅ FileComparison: File ${fileNum} loaded, ${text.length} chars`);
+      
       if (fileNum === 1) {
         setFile1(file);
         setContent1(text);
@@ -90,6 +188,7 @@ export default function FileComparison() {
       }
       setError("");
     } catch (err) {
+      console.error(`❌ FileComparison: Error reading file ${fileNum}:`, err);
       setError("Failed to read file: " + err.message);
     }
   };
@@ -213,10 +312,11 @@ export default function FileComparison() {
                     <span className="line-number">{item.leftNumber ?? ""}</span>
                   </div>
                   <span className="diff-text left-text">
-                    {item.type === "modified" && item.wordDiff ? (
-                      item.wordDiff.map((word, idx) => (
+                    {item.type === "modified" && item.leftTokens ? (
+                      item.leftTokens.map((word, idx) => (
                         <span key={idx} className={`word ${word.type}`}>
-                          {word.text}{idx < item.wordDiff.length - 1 ? " " : ""}
+                          {word.text}
+                          {idx < item.leftTokens.length - 1 ? " " : ""}
                         </span>
                       ))
                     ) : (
@@ -229,10 +329,11 @@ export default function FileComparison() {
                     <span className="line-number">{item.rightNumber ?? ""}</span>
                   </div>
                   <span className="diff-text right-text">
-                    {item.type === "modified" && item.wordDiff ? (
-                      item.wordDiff.map((word, idx) => (
+                    {item.type === "modified" && item.rightTokens ? (
+                      item.rightTokens.map((word, idx) => (
                         <span key={idx} className={`word ${word.type}`}>
-                          {word.text}{idx < item.wordDiff.length - 1 ? " " : ""}
+                          {word.text}
+                          {idx < item.rightTokens.length - 1 ? " " : ""}
                         </span>
                       ))
                     ) : (

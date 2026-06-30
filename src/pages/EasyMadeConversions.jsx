@@ -26,25 +26,11 @@ const tools = [
     icon: "🔍",
   },
   {
-    id: "jpg-to-png",
-    name: "JPG to PNG",
-    description: "Convert JPG images to PNG format",
+    id: "image-converter",
+    name: "Image Converter Studio",
+    description: "Convert image formats with rotate, crop, resize, and quality controls",
     category: "Image Tools",
     icon: "🖼️",
-  },
-  {
-    id: "png-to-jpg",
-    name: "PNG to JPG",
-    description: "Convert PNG images to JPG format",
-    category: "Image Tools",
-    icon: "🖼️",
-  },
-  {
-    id: "png-to-favicon",
-    name: "PNG to Favicon",
-    description: "Convert PNG images to favicon format",
-    category: "Image Tools",
-    icon: "🌐",
   },
   {
     id: "jwt-decoder",

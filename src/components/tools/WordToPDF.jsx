@@ -1,6 +1,57 @@
 import { useState } from "react";
 import * as mammoth from "mammoth";
-import { jsPDF } from "jspdf";
+import DocxPreview from "./DocxPreview";
+
+const convertDocxToHtmlWithImages = async (arrayBuffer) => {
+  const result = await mammoth.convertToHtml(
+    { arrayBuffer },
+    {
+      convertImage: mammoth.images.imgElement(async (image) => {
+        const base64 = await image.read("base64");
+        return {
+          src: `data:${image.contentType};base64,${base64}`,
+        };
+      }),
+    }
+  );
+  return result.value || "";
+};
+
+const postConvertWithFallback = async (endpoint, formData) => {
+  const candidates = [endpoint, `http://localhost:8787${endpoint}`];
+  let lastError = "Server conversion failed.";
+
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        return response;
+      }
+
+      const text = await response.text();
+      let parsed = text || lastError;
+      try {
+        const payload = JSON.parse(text);
+        parsed = payload?.error || parsed;
+      } catch {
+        // keep raw text
+      }
+
+      lastError = parsed;
+      if (!String(parsed).includes("Cannot POST")) {
+        throw new Error(parsed);
+      }
+    } catch (error) {
+      lastError = error?.message || lastError;
+    }
+  }
+
+  throw new Error(lastError);
+};
 
 export default function WordToPDF() {
   const [file, setFile] = useState(null);
@@ -9,6 +60,9 @@ export default function WordToPDF() {
   const [isConverting, setIsConverting] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewText, setPreviewText] = useState("");
+  const [convertedBlob, setConvertedBlob] = useState(null);
+  const [convertedName, setConvertedName] = useState("");
+  const [convertedPreviewUrl, setConvertedPreviewUrl] = useState("");
 
   const handleFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
@@ -17,18 +71,31 @@ export default function WordToPDF() {
     if (!selectedFile.name.toLowerCase().endsWith('.doc') &&
         !selectedFile.name.toLowerCase().endsWith('.docx')) {
       setError("Please select a valid Word document (.doc or .docx)");
+      setFile(null);
+      setPreviewHtml("");
+      setPreviewText("");
+      if (convertedPreviewUrl) {
+        URL.revokeObjectURL(convertedPreviewUrl);
+      }
+      setConvertedPreviewUrl("");
       return;
     }
 
     setFile(selectedFile);
     setError("");
     setMessage("");
+    setConvertedBlob(null);
+    setConvertedName("");
+    if (convertedPreviewUrl) {
+      URL.revokeObjectURL(convertedPreviewUrl);
+      setConvertedPreviewUrl("");
+    }
 
     try {
       // Extract HTML and text for preview
       const arrayBuffer = await selectedFile.arrayBuffer();
-      const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
-      setPreviewHtml(htmlResult.value);
+      const html = await convertDocxToHtmlWithImages(arrayBuffer);
+      setPreviewHtml(html);
       const textResult = await mammoth.extractRawText({ arrayBuffer });
       setPreviewText(textResult.value);
     } catch (err) {
@@ -47,53 +114,46 @@ export default function WordToPDF() {
     setMessage("");
 
     try {
-      // Read the Word file
-      const arrayBuffer = await file.arrayBuffer();
+      const form = new FormData();
+      form.append("file", file);
 
-      // Convert to HTML using mammoth
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      const htmlContent = result.value;
+      const response = await postConvertWithFallback("/api/convert/word-to-pdf", form);
 
-      if (!htmlContent.trim()) {
-        throw new Error("No content found in the Word document.");
-      }
-
-      // Create PDF using jsPDF with HTML
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-
-      // Add title
-      pdf.setFontSize(16);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Converted from Word: " + file.name, 20, 30);
-
-      // Add conversion date
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "italic");
-      pdf.text("Conversion Date: " + new Date().toLocaleString(), 20, 45);
-
-      // Add HTML content
-      await pdf.html(htmlContent, {
-        x: 20,
-        y: 60,
-        width: 170,
-        windowWidth: 650
-      });
-
+      const blob = await response.blob();
       const outputName = file.name.replace(/\.(doc|docx)$/i, ".pdf");
 
-      pdf.save(outputName);
+      if (convertedPreviewUrl) {
+        URL.revokeObjectURL(convertedPreviewUrl);
+      }
 
-      setMessage(`Word document converted successfully. Downloaded as ${outputName}.`);
-      setFile(null);
-      setPreviewHtml("");
-      setPreviewText("");
+      const objectUrl = URL.createObjectURL(blob);
+      setConvertedBlob(blob);
+      setConvertedName(outputName);
+      setConvertedPreviewUrl(objectUrl);
+
+      setMessage("Conversion completed. Review the preview and click Download.");
 
     } catch (err) {
       console.error("Conversion error:", err);
-      setError("Conversion failed: " + err.message);
+      const raw = String(err?.message || "");
+      const hint =
+        raw.includes("Cannot POST") || raw.includes("Failed to fetch")
+          ? "Backend API is unreachable. Start from client folder with npm run dev so both UI and API run."
+          : raw;
+      setError("Conversion failed: " + hint);
     } finally {
       setIsConverting(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!convertedBlob) return;
+    const url = URL.createObjectURL(convertedBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = convertedName || "converted.pdf";
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -121,12 +181,22 @@ export default function WordToPDF() {
           <div className="preview-split">
             <div className="preview-panel">
               <div className="preview-panel-header">Original Word Document</div>
-              <div className="preview-content" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              <div className="preview-content word-to-pdf-preview">
+                {file && file.name.toLowerCase().endsWith(".docx") ? (
+                  <DocxPreview docxBlob={file} />
+                ) : (
+                  <div className="mammoth-content" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                )}
+              </div>
             </div>
             <div className="preview-panel">
-              <div className="preview-panel-header">Converted PDF Content</div>
-              <div className="preview-content">
-                <pre>{previewText}</pre>
+              <div className="preview-panel-header">Converted PDF Preview</div>
+              <div className="preview-content preview-content-embed">
+                {convertedPreviewUrl ? (
+                  <iframe title="Converted PDF Preview" src={convertedPreviewUrl} className="preview-iframe" />
+                ) : (
+                  <pre>{previewText}</pre>
+                )}
               </div>
             </div>
           </div>
@@ -141,10 +211,16 @@ export default function WordToPDF() {
         {isConverting ? "Converting..." : "Convert to PDF"}
       </button>
 
+      {convertedBlob && (
+        <button className="convert-btn" onClick={handleDownload}>
+          Download PDF File
+        </button>
+      )}
+
       <div className="info-box">
         <p>
-          <strong>Note:</strong> This tool converts Word documents to PDF with formatting preserved.
-          Complex layouts may require manual adjustment in the output.
+          <strong>Note:</strong> Conversion runs on the server for stronger formatting consistency.
+          Review the preview before downloading.
         </p>
       </div>
     </div>

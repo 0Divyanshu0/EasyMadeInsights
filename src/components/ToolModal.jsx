@@ -13,12 +13,12 @@ export default function ToolModal({ tool, isOpen, onClose }) {
     switch (tool.id) {
       case "jwt-decoder":
         return <JWTDecoder />;
+      case "image-converter":
+        return <ImageConverter />;
       case "jpg-to-png":
-        return <ImageConverter convertFrom="jpg" convertTo="png" />;
       case "png-to-jpg":
-        return <ImageConverter convertFrom="png" convertTo="jpg" />;
       case "png-to-favicon":
-        return <ImageConverter convertFrom="png" convertTo="favicon" />;
+        return <ImageConverter />;
       case "file-compare":
         return <FileComparison />;
       case "pdf-to-word":
@@ -34,9 +34,9 @@ export default function ToolModal({ tool, isOpen, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{tool.name}</h2>
+          <h2 className="modal-title">{tool.name}</h2>
           <button className="close-btn" onClick={onClose} aria-label="Close tool">
-            x
+            ×
           </button>
         </div>
         <div className="modal-body">{renderTool()}</div>
