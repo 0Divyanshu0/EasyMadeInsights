@@ -30,84 +30,96 @@ export default function ImageConverter() {
   const [resizeHeight, setResizeHeight] = useState(0);
 
   const resetOutput = () => {
-    if (outputUrl) {
-      URL.revokeObjectURL(outputUrl);
-    }
-    setOutputUrl("");
+    setOutputUrl((prevUrl) => {
+      if (prevUrl) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return "";
+    });
     setOutputBlob(null);
   };
 
-  // Auto-update preview when controls change
   useEffect(() => {
-    if (file && sourceUrl) {
-      const autoProcess = async () => {
-        try {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
+    if (!file || !sourceUrl) {
+      return undefined;
+    }
 
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = sourceUrl;
-          });
+    let cancelled = false;
 
-          const safeCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
-          const safeCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
-          const safeCropW = Math.max(1, Math.min(cropWidth, originalWidth - safeCropX));
-          const safeCropH = Math.max(1, Math.min(cropHeight, originalHeight - safeCropY));
-          const outW = outputFormat === "favicon" ? 64 : Math.max(1, resizeWidth || safeCropW);
-          const outH = outputFormat === "favicon" ? 64 : Math.max(1, resizeHeight || safeCropH);
+    const autoProcess = async () => {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
 
-          const canvas = document.createElement("canvas");
-          canvas.width = outW;
-          canvas.height = outH;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = sourceUrl;
+        });
 
-          ctx.save();
-          ctx.translate(outW / 2, outH / 2);
-          ctx.rotate((rotation * Math.PI) / 180);
+        const safeCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
+        const safeCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
+        const safeCropW = Math.max(1, Math.min(cropWidth, originalWidth - safeCropX));
+        const safeCropH = Math.max(1, Math.min(cropHeight, originalHeight - safeCropY));
+        const outW = outputFormat === "favicon" ? 64 : Math.max(1, resizeWidth || safeCropW);
+        const outH = outputFormat === "favicon" ? 64 : Math.max(1, resizeHeight || safeCropH);
 
-          ctx.drawImage(
-            img,
-            safeCropX,
-            safeCropY,
-            safeCropW,
-            safeCropH,
-            -outW / 2,
-            -outH / 2,
-            outW,
-            outH
+        const canvas = document.createElement("canvas");
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.save();
+        ctx.translate(outW / 2, outH / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+
+        ctx.drawImage(
+          img,
+          safeCropX,
+          safeCropY,
+          safeCropW,
+          safeCropH,
+          -outW / 2,
+          -outH / 2,
+          outW,
+          outH
+        );
+        ctx.restore();
+
+        const mimeType = outputFormat === "jpg" ? "image/jpeg" : "image/png";
+        const blob = await new Promise((resolve) => {
+          canvas.toBlob(
+            (result) => {
+              resolve(result);
+            },
+            mimeType,
+            quality
           );
-          ctx.restore();
+        });
 
-          const mimeType = outputFormat === "jpg" ? "image/jpeg" : "image/png";
-          const blob = await new Promise((resolve) => {
-            canvas.toBlob(
-              (result) => {
-                resolve(result);
-              },
-              mimeType,
-              quality
-            );
-          });
+        if (!blob || cancelled) return;
 
-          if (blob) {
-            if (outputUrl) {
-              URL.revokeObjectURL(outputUrl);
-            }
-            const nextUrl = URL.createObjectURL(blob);
-            setOutputBlob(blob);
-            setOutputUrl(nextUrl);
+        setOutputBlob(blob);
+        setOutputUrl((prevUrl) => {
+          if (prevUrl) {
+            URL.revokeObjectURL(prevUrl);
           }
-        } catch (err) {
+          return URL.createObjectURL(blob);
+        });
+      } catch (err) {
+        if (!cancelled) {
           console.error("Auto-process error:", err);
         }
-      };
+      }
+    };
 
-      autoProcess();
-    }
-  }, [sourceUrl, outputFormat, rotation, quality, cropX, cropY, cropWidth, cropHeight, resizeWidth, resizeHeight, file, originalWidth, originalHeight, outputUrl]);
+    autoProcess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceUrl, outputFormat, rotation, quality, cropX, cropY, cropWidth, cropHeight, resizeWidth, resizeHeight, file, originalWidth, originalHeight]);
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files?.[0];
@@ -148,7 +160,6 @@ export default function ImageConverter() {
       return;
     }
 
-    // Preview is already auto-updated, this just confirms and shows message
     setMessage("✅ Image settings applied! Ready to download.");
   };
 
