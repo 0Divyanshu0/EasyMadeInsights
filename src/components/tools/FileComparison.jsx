@@ -1,12 +1,16 @@
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 
-const normalizeText = (text) => text.replace(/\r/g, "");
+const normalizeText = (text) => text.replace(/\r\n?/g, "\n");
 
 const buildWordDiff = (leftText, rightText) => {
-  const leftWords = leftText.split(/\s+/).filter(Boolean);
-  const rightWords = rightText.split(/\s+/).filter(Boolean);
+  const leftWords = leftText.match(/\s+|\S+/g) || [];
+  const rightWords = rightText.match(/\s+|\S+/g) || [];
   const m = leftWords.length;
   const n = rightWords.length;
+
+  if (m * n > 100000) {
+    return { leftTokens: [{ text: leftText, type: "removed" }], rightTokens: [{ text: rightText, type: "added" }] };
+  }
 
   const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
 
@@ -54,10 +58,13 @@ const buildWordDiff = (leftText, rightText) => {
 };
 
 const computeDiff = (leftText, rightText) => {
-  const leftLines = normalizeText(leftText).split("\n");
-  const rightLines = normalizeText(rightText).split("\n");
+  const leftLines = leftText ? normalizeText(leftText).split("\n") : [];
+  const rightLines = rightText ? normalizeText(rightText).split("\n") : [];
   const m = leftLines.length;
   const n = rightLines.length;
+  if (leftText.length + rightText.length > 400000 || m * n > 2000000) {
+    throw new Error("These inputs are too large for an inline comparison. Compare smaller sections (up to 200,000 characters per input).");
+  }
   const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
 
   for (let i = m - 1; i >= 0; i--) {
@@ -130,29 +137,22 @@ const computeDiff = (leftText, rightText) => {
   const diffs = [];
   for (let k = 0; k < raw.length; k++) {
     const current = raw[k];
-    if (
-      current.type === "removed" &&
-      raw[k + 1] &&
-      raw[k + 1].type === "added"
-    ) {
-      const next = raw[k + 1];
-      const diffTokens = buildWordDiff(current.leftLine, next.rightLine);
-      diffs.push({
-        type: "modified",
-        leftLine: current.leftLine,
-        rightLine: next.rightLine,
-        leftNumber: current.leftNumber,
-        rightNumber: next.rightNumber,
-        leftTokens: diffTokens.leftTokens,
-        rightTokens: diffTokens.rightTokens,
-      });
+    if (current.type === "same") { diffs.push(current); continue; }
+    const removed = [];
+    const added = [];
+    while (k < raw.length && raw[k].type !== "same") {
+      (raw[k].type === "removed" ? removed : added).push(raw[k]);
       k++;
-    } else {
-      diffs.push({
-        ...current,
-        leftTokens: null,
-        rightTokens: null,
-      });
+    }
+    k--;
+    for (let offset = 0; offset < Math.max(removed.length, added.length); offset++) {
+      const left = removed[offset];
+      const right = added[offset];
+      if (left && right) {
+        diffs.push({ type: "modified", leftLine: left.leftLine, rightLine: right.rightLine,
+          leftNumber: left.leftNumber, rightNumber: right.rightNumber,
+          ...buildWordDiff(left.leftLine, right.rightLine) });
+      } else { diffs.push(left || right); }
     }
   }
 
@@ -169,45 +169,65 @@ export default function FileComparison() {
   const [content1, setContent1] = useState("");
   const [content2, setContent2] = useState("");
   const [error, setError] = useState("");
+  const [diff, setDiff] = useState(null);
+  const selectionRef = useRef({ 1: 0, 2: 0 });
+
+  const updateInput = (text, side) => {
+    (side === 1 ? setContent1 : setContent2)(text);
+    setDiff(null);
+    setError("");
+  };
+
+  const changeMode = (next) => {
+    if (next === mode) return;
+    selectionRef.current[1] += 1;
+    selectionRef.current[2] += 1;
+    setMode(next);
+    setFile1(null);
+    setFile2(null);
+    updateInput("", 1);
+    updateInput("", 2);
+  };
 
   const handleFileSelect = async (e, fileNum) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    const selection = ++selectionRef.current[fileNum];
+    (fileNum === 1 ? setFile1 : setFile2)(null);
+    updateInput("", fileNum);
 
     try {
+      if (!/\.(txt|csv|json|md|log)$/i.test(file.name) || file.size > 200000) {
+        throw new Error("Select a text file up to 200 KB (.txt, .csv, .json, .md, or .log).");
+      }
       console.log(`📁 FileComparison: Reading file ${fileNum}: ${file.name}`);
       const text = normalizeText(await file.text());
+      if (selection !== selectionRef.current[fileNum]) return;
+      if (text.includes("\u0000")) throw new Error("Select a UTF-8 text file. Binary files are not supported.");
       console.log(`✅ FileComparison: File ${fileNum} loaded, ${text.length} chars`);
       
       if (fileNum === 1) {
         setFile1(file);
-        setContent1(text);
+        updateInput(text, 1);
       } else {
         setFile2(file);
-        setContent2(text);
+        updateInput(text, 2);
       }
       setError("");
     } catch (err) {
+      if (selection !== selectionRef.current[fileNum]) return;
+      (fileNum === 1 ? setFile1 : setFile2)(null);
+      updateInput("", fileNum);
       console.error(`❌ FileComparison: Error reading file ${fileNum}:`, err);
       setError("Failed to read file: " + err.message);
     }
   };
 
-  const diff = useMemo(() => {
-    if (!content1 && !content2) {
-      return [];
-    }
-
-    return computeDiff(content1, content2);
-  }, [content1, content2]);
-
   const handleCompare = () => {
-    if (!content1 || !content2) {
-      setError("Please provide both inputs to compare.");
-      return;
-    }
-
     setError("");
+    try { setDiff(computeDiff(content1, content2)); }
+    catch (err) { setDiff(null); setError(err.message); }
   };
 
   return (
@@ -216,14 +236,14 @@ export default function FileComparison() {
         <button
           type="button"
           className={mode === "paste" ? "active" : ""}
-          onClick={() => setMode("paste")}
+          onClick={() => changeMode("paste")}
         >
           Paste Text
         </button>
         <button
           type="button"
           className={mode === "upload" ? "active" : ""}
-          onClick={() => setMode("upload")}
+          onClick={() => changeMode("upload")}
         >
           Upload Files
         </button>
@@ -258,18 +278,22 @@ export default function FileComparison() {
         ) : (
           <div className="comparison-split">
             <div className="comparison-panel">
-              <div className="comparison-panel-header">Text 1</div>
+              <label htmlFor="comparison-left" className="comparison-panel-header">Text 1</label>
               <textarea
+                id="comparison-left"
+                maxLength={200000}
                 value={content1}
-                onChange={(e) => setContent1(e.target.value)}
+                onChange={(e) => updateInput(e.target.value, 1)}
                 placeholder="Paste or type text here..."
               />
             </div>
             <div className="comparison-panel">
-              <div className="comparison-panel-header">Text 2</div>
+              <label htmlFor="comparison-right" className="comparison-panel-header">Text 2</label>
               <textarea
+                id="comparison-right"
+                maxLength={200000}
                 value={content2}
-                onChange={(e) => setContent2(e.target.value)}
+                onChange={(e) => updateInput(e.target.value, 2)}
                 placeholder="Paste or type text here..."
               />
             </div>
@@ -279,13 +303,14 @@ export default function FileComparison() {
         <button
           className="compare-btn"
           onClick={handleCompare}
-          disabled={!content1 || !content2}
+          disabled={mode === "upload" ? !file1 || !file2 : !content1 && !content2}
         >
           Compare Now
         </button>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message" role="alert">{error}</div>}
+      {diff && <p className="info-message" role="status">{diff.every((item) => item.type === "same") ? "The inputs are identical." : `${diff.filter((item) => item.type !== "same").length} changed lines.`}</p>}
 
       <div className="diff-legend">
         <span className="legend-item legend-same">No Change</span>
@@ -298,8 +323,8 @@ export default function FileComparison() {
         <div className="diff-panel">
           <div className="diff-panel-header">Comparison</div>
           <div className="diff-panel-body">
-            {diff.length === 0 ? (
-              <p className="info-message">Paste or upload both inputs to see the diff.</p>
+            {!diff ? (
+              <p className="info-message">Paste or upload your inputs, then click Compare Now.</p>
             ) : (
               diff.map((item) => (
                 <div
@@ -316,7 +341,6 @@ export default function FileComparison() {
                       item.leftTokens.map((word, idx) => (
                         <span key={idx} className={`word ${word.type}`}>
                           {word.text}
-                          {idx < item.leftTokens.length - 1 ? " " : ""}
                         </span>
                       ))
                     ) : (
@@ -333,7 +357,6 @@ export default function FileComparison() {
                       item.rightTokens.map((word, idx) => (
                         <span key={idx} className={`word ${word.type}`}>
                           {word.text}
-                          {idx < item.rightTokens.length - 1 ? " " : ""}
                         </span>
                       ))
                     ) : (

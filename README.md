@@ -1,596 +1,161 @@
 # EasyMadeInsights
 
-EasyMadeInsights is a data-analysis and business-intelligence web app designed to help users upload spreadsheet files, clean and analyze tabular data, visualize trends, and generate AI-driven business insights. The platform also includes a secondary toolset called EasyMadeConversions for document/file utilities such as PDF conversion, image conversion, JWT decoding, and file comparison.
+EasyMadeInsights is a browser-based spreadsheet dashboard with an accompanying
+utility workspace, **EasyMadeConversions**. Users can inspect tabular data,
+choose reporting dimensions and chart styles, and access document, image,
+text-comparison, and JWT tools.
 
-This project is built as a React SPA with a lightweight Express API for AI-backed insight generation, and it is intended for deployment on Firebase Hosting.
+This documentation describes the current implementation, not planned features.
+Workbook takeaways run locally and follow the selected metric and grouping.
+An optional experimental AI API remains in the backend, but the dashboard does
+not call it and has no API-key requirement.
 
-## 1. Product overview
+## Documentation
 
-EasyMadeInsights turns raw spreadsheet data into an executive-ready decision-support experience.
+| Guide | Contents |
+| --- | --- |
+| [User Guide](docs/USER_GUIDE.md) | Uploads, dashboard controls, all five tools, limits, and interpreting results |
+| [Architecture](docs/ARCHITECTURE.md) | Source map, runtime boundaries, state, and processing flows |
+| [Development](docs/DEVELOPMENT.md) | Installation, configuration, commands, tests, troubleshooting, and contribution workflow |
+| [API Reference](docs/API.md) | Health, document conversion, experimental AI, and error contracts |
+| [Deployment](docs/DEPLOYMENT.md) | Firebase Hosting, separate conversion backend, security, and release checks |
+| [Production Pipeline](docs/CI_CD.md) | prod branch, quality/test/build gates, GitHub credentials, and automated Hosting release |
 
-The product has two major parts:
+## Current Capabilities
 
-- Core analytics dashboard for spreadsheet ingestion and business analysis
-- EasyMadeConversions module for file/document utilities
+| Capability | Status | Processing location |
+| --- | --- | --- |
+| Excel, CSV, TSV, and JSON upload | Implemented | Browser |
+| Sheet selection, KPI cards, and cleaned-data preview | Implemented | Browser |
+| Metric, breakdown, trend, and comparison controls | Implemented | Browser |
+| Bar, line, area, column, and donut views | Implemented | Browser |
+| Selected-metric workbook takeaways | Implemented; full cleaned-data totals, leading groups, review prompts; not AI-generated | Browser |
+| Expanded previews | Searchable, paginated full-sheet modal; fit/full-size document and image modals | Browser |
+| Light/dark theme and branded welcome overlays | Implemented | Browser; theme saved locally |
+| PDF to editable DOCX, including English scan OCR | Requires backend/Python and OCR language data for scans | Server |
+| DOC/DOCX to PDF | Requires conversion backend; legacy DOC needs a suitable office engine | Server |
+| Photo studio: visual crop, flips, tones, undo/redo, PNG/JPG/WebP/ICO export | Implemented | Browser |
+| Text/file comparison | Implemented for supported text formats | Browser |
+| JWT header/payload decoding | Implemented; no signature verification | Browser |
+| Experimental AI endpoint | Backend only; no dashboard integration | Optional server/provider |
+| Accounts, cloud saves, saved report presets, and report export | Not implemented | Not applicable |
 
-### Primary user goals
+## Quick Start
 
-- Upload Excel or tabular files from local storage
-- Clean and normalize messy data automatically
-- Detect metric columns, category columns, and date columns
-- Visualize trends and distributions using charts
-- View KPI summaries and workbook-level metrics
-- Ask for AI-generated business recommendations via backend API
-- Access conversion and developer utilities in a second page/module
+Run commands from this `client` directory. Install Node.js compatible with
+Vite 7 (Node 20.19+ or 22.12+); see the [Vite 7 announcement](https://vite.dev/blog/announcing-vite7)
+for its runtime requirements.
 
-### Example business use cases
-
-- Reviewing sales reports across regions or product lines
-- Investigating product performance by category or month
-- Summarizing operational metrics from CSV exports
-- Creating quick, visually understandable reporting snapshots for stakeholders
-- Converting files or inspecting developer payloads without leaving the app
-
----
-
-## 2. High-level architecture
-
-```mermaid
-flowchart LR
-    A[User Browser] --> B[React Frontend]
-    B --> C[Workbook parsing + analysis logic]
-    B --> D[Dashboard UI / charts / KPI cards]
-    B --> E[EasyMadeConversions UI]
-    B --> F[Express API /api/ai-insights]
-    F --> G[OpenAI API]
-    H[Uploaded files] --> B
-    I[Firebase Hosting] --> B
+```powershell
+npm.cmd ci
+npm.cmd run dev
 ```
 
-### Runtime split
+Open `http://localhost:5173/`. The same command starts Express on
+`http://localhost:8787`. On macOS/Linux, use `npm` instead of `npm.cmd`.
+No API key is needed for the dashboard or conversion tools.
 
-- Frontend: Vite + React SPA
-- Backend: Express server (`server.mjs`)
-- Data processing: client-side workbook parsing using `xlsx`
-- AI: OpenAI responses API
-- Static hosting: Firebase Hosting
+Document conversion additionally needs Python and its dependencies. Python
+3.12 is the locally verified version for the pinned requirements:
 
----
-
-## 3. Core capabilities
-
-### 3.1 Spreadsheet upload and parsing
-
-The app accepts:
-
-- `.xlsx`
-- `.xls`
-- `.csv`
-- `.tsv`
-- `.json`
-
-The upload flow is driven by `FileUpload.jsx` and workbook logic is centered in `src/utils/workbook.js`.
-
-### 3.2 Data cleaning and normalization
-
-The workbook analyzer performs automatic data preparation such as:
-
-- removing empty rows
-- normalizing column values
-- handling missing values
-- deduplicating repeated rows
-- classifying fields as numeric, category, or date-like
-
-This is implemented by helper functions like:
-
-- `cleanRows()`
-- `parseNumericValue()`
-- `parseDateValue()`
-- `analyzeSheet()`
-- `buildWorkbookSummary()`
-
-### 3.3 KPI and summary generation
-
-The app builds workbook-level summary metrics such as:
-
-- total numeric totals
-- average values
-- top categories
-- distribution trends
-- primary metric detection
-- date/category breakdown suggestions
-
-These values power the KPI cards in `Dashboard.jsx` and the metric summaries shown in the dashboard.
-
-### 3.4 Charts and visual analytics
-
-The dashboard uses Recharts to present:
-
-- bar charts
-- line charts
-- area charts
-- pie charts
-- trend visualizations for selected numeric dimensions
-
-The chart configuration is defined in `Dashboard.jsx`, while the analysis logic is structured in `workbook.js`.
-
-### 3.5 AI insights layer
-
-The backend API route `POST /api/ai-insights` receives workbook context and a ready-made summary payload, then sends a structured prompt to OpenAI.
-
-The response is expected in a strict JSON schema containing:
-
-- `executive_summary`
-- `key_insights`
-- `risks_and_opportunities`
-- `recommended_actions`
-
-This gives the dashboard a business-focused AI narrative block without exposing raw spreadsheet logic to the client.
-
-### 3.6 EasyMadeConversions module
-
-This module is an internal utility library within the app and includes tools such as:
-
-- PDF to Word conversion
-- Word to PDF conversion
-- image conversion and optimization
-- file comparison diff views
-- JWT decoding and inspection
-
-The tool UI is surfaced via the `ToolModal` plus tool-specific components in `src/components/tools/`.
-
----
-
-## 4. Feature architecture
-
-```mermaid
-flowchart TD
-    A[Workbook Upload] --> B[Workbook Parsing]
-    B --> C[Clean Rows]
-    C --> D[Column detection]
-    D --> E[Metric selection]
-    D --> F[Trend analysis]
-    D --> G[Breakdown analysis]
-    E --> H[KPI cards]
-    F --> I[Charts]
-    G --> I
-    H --> J[Dashboard summary]
-    J --> K[AI insight request]
-    K --> L[Express API]
-    L --> M[OpenAI]
-    M --> N[Executive summary + actions]
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
+.\.venv\Scripts\python.exe python\setup_ocr.py
 ```
 
----
-
-## 5. Application structure
-
-```text
-client/
-├── public/
-│   ├── easy-made-insights-logo.png
-│   ├── EasyMadeConversion_logo.png
-│   ├── robots.txt
-│   └── sitemap.xml
-├── src/
-│   ├── App.jsx
-│   ├── main.jsx
-│   ├── components/
-│   │   ├── AIInsightsPanel.jsx
-│   │   ├── ChartCard.jsx
-│   │   ├── FileUpload.jsx
-│   │   ├── KPI.jsx
-│   │   ├── Loader.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── SheetSelector.jsx
-│   │   ├── Sidebar.jsx
-│   │   ├── ToolModal.jsx
-│   │   ├── WelcomeOverlay.jsx
-│   │   └── tools/
-│   │       ├── DocxPreview.jsx
-│   │       ├── FileComparison.jsx
-│   │       ├── ImageConverter.jsx
-│   │       ├── JWTDecoder.jsx
-│   │       ├── PDFToWord.jsx
-│   │       └── WordToPDF.jsx
-│   ├── pages/
-│   │   ├── Dashboard.jsx
-│   │   ├── EasyMadeConversions.jsx
-│   │   └── NotFound.jsx
-│   ├── styles/
-│   │   ├── ai-insights.css
-│   │   ├── charts.css
-│   │   ├── conversions.css
-│   │   ├── dashboard.css
-│   │   ├── kpi.css
-│   │   ├── loader.css
-│   │   ├── navbar.css
-│   │   ├── sheetselector.css
-│   │   ├── sidebar.css
-│   │   ├── tools.css
-│   │   ├── upload.css
-│   │   └── welcome.css
-│   └── utils/
-│       └── workbook.js
-├── index.html
-├── server.mjs
-├── vite.config.js
-├── package.json
-├── .gitignore
-├── eslint.config.js
-├── firebase.json
-├── .firebaserc
-├── README.md
-└── package-lock.json
-```
-
----
-
-## 6. Frontend components and responsibilities
-
-### `App.jsx`
-
-Responsible for:
-
-- theme setup
-- route registration
-- page-level SEO metadata updates
-- app shell layout
-- navigation and welcome overlay state
-
-### `Dashboard.jsx`
-
-This is the main analytics experience. It handles:
-
-- file upload state
-- workbook selection and active sheet state
-- chart generation
-- KPI calculations
-- AI insight requests
-- workbook summary rendering
-- sections for overview, charts, insights, and preview
-
-### `FileUpload.jsx`
-
-Provides upload interaction and triggers the workbook import flow.
-
-### `SheetSelector.jsx`
-
-Lets the user switch between workbook sheets after loading a file.
-
-### `AIInsightsPanel.jsx`
-
-Displays AI-generated executive insights and recommended actions.
-
-### `ToolModal.jsx`
-
-Embeds conversions and utility tools in a modal container, using a tool ID switch to render different utility components.
-
-### `components/tools/*`
-
-Each tool component is focused on one utility:
-
-- `ImageConverter.jsx` handles crop, resize, quality, format changes
-- `FileComparison.jsx` compares two text files with diff output
-- `PDFToWord.jsx` converts PDF to DOCX with preview
-- `WordToPDF.jsx` converts Word docs to PDF with preview
-- `JWTDecoder.jsx` decodes JWT payload and metadata
-
----
-
-## 7. Workbook analysis logic
-
-The spreadsheet analysis runtime is deeply rooted in `src/utils/workbook.js`.
-
-### Key responsibilities
-
-- infer data shape from rows and columns
-- identify numeric/date/category columns
-- preserve only valid rows
-- fill missing values when required
-- aggregate metrics for charting
-- generate workbook summaries
-- convert raw data into chart-friendly structures
-
-### Important analysis helpers
-
-- `cleanRows(rows)` — sanitizes uploaded data
-- `aggregateByColumn()` — groups rows by category and metric
-- `buildBarData()`, `buildLineData()` — chart data creation
-- `buildMetricSummary()` — metric-level summaries
-- `formatMetricDisplay()` — metric number formatting
-- `parseNumericValue()`, `parseDateValue()` — type parsing utilities
-
-### Data quality behavior
-
-The workbook logic is intentionally opinionated and designed to help with quick business analysis:
-
-- numeric columns are normalized into numbers
-- empty values are imputed using column-specific defaults
-- categorical columns are normalized into strings
-- duplicate rows are removed
-- chart series are capped for readability
-
-The constants used for chart generation are:
-
-- `MAX_BAR_POINTS = 8`
-- `MAX_LINE_POINTS = 12`
-- `MAX_PIE_POINTS = 5`
-
----
-
-## 8. Backend API and AI integration
-
-The backend server is in `server.mjs` and is run via the dev script from `package.json`:
-
-```bash
-npm run dev
-```
-
-This starts both:
-
-- Vite frontend server on port `5173`
-- Express API server on port `8787`
-
-### API endpoints
-
-#### `GET /api/health`
-
-Returns:
-
-- `ok`
-- `aiConfigured`
-- `model`
-
-#### `POST /api/ai-insights`
-
-Authorization-free request from the frontend, passes workbook metadata and a summary. It validates environment variables and calls OpenAI.
-
-### AI prompt structure
-
-A system prompt instructs the model to behave like a professional business analyst and return concise, executive-ready output based strictly on the workbook summary. The route requires a strict JSON schema, which prevents malformed or hallucinated output shapes.
-
-### Environment requirements
-
-The app expects the following environment variable:
-
-```text
-OPENAI_API_KEY
-```
-
-Optional:
-
-```text
-OPENAI_MODEL
-PORT
-```
-
----
-
-## 9. Tech stack and dependencies
-
-### Frontend
-
-| Package | Version | Purpose |
-|---|---:|---|
-| `react` | `^19.2.0` | UI library |
-| `react-dom` | `^19.2.0` | DOM rendering |
-| `react-router-dom` | used in app | client-side routing |
-| `vite` | `^7.2.4` | build tool and dev server |
-| `@vitejs/plugin-react` | `^5.1.1` | React integration for Vite |
-| `recharts` | `^3.8.1` | charts and dashboards |
-| `xlsx` | `^0.18.5` | Excel / CSV / TSV parsing |
-
-### Backend
-
-| Package | Version | Purpose |
-|---|---:|---|
-| `express` | `^5.2.1` | API server |
-| `cors` | `^2.8.6` | cross-origin request handling |
-| `dotenv` | `^17.4.2` | environment variable loading |
-| `openai` | `^6.34.0` | OpenAI SDK |
-
-### Conversion/document utilities
-
-| Package | Version | Purpose |
-|---|---:|---|
-| `mammoth` | `^1.12.0` | DOCX to HTML/text extraction |
-| `pdfjs-dist` | `^5.7.284` | PDF preview and text extraction |
-| `docx-preview` | `^0.3.7` | DOCX rich preview rendering |
-
-### Tooling and dev dependencies
-
-| Package | Purpose |
-|---|---|
-| `concurrently` | run frontend and backend together |
-| `eslint` | linting |
-| `@eslint/js` | base JS linting rules |
-| `eslint-plugin-react-hooks` | React Hooks linting |
-| `eslint-plugin-react-refresh` | Vite React fast-refresh checks |
-
-### Deployment platform
-
-- Firebase Hosting
-- CI/CD is optionally configured via Firebase tooling, with static app deployment from `dist/`
-
----
-
-## 10. Scripts and commands
-
-### Install dependencies
-
-```bash
-npm install
-```
-
-### Run app locally
-
-```bash
-npm run dev
-```
-
-This starts both the frontend and API in parallel.
-
-### Build for production
-
-```bash
-npm run build
-```
-
-### Preview built app
-
-```bash
-npm run preview
-```
-
-### Lint
-
-```bash
-npm run lint
-```
-
----
-
-## 11. Data flow in the app
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend React App
-    participant W as Workbook Utils
-    participant A as Express API
-    participant O as OpenAI
-
-    U->>F: Upload Excel/CSV/JSON file
-    F->>W: Parse workbook and analyze sheets
-    W-->>F: Clean data + KPI + chart series
-    F->>U: Render dashboard and visual summaries
-    U->>F: Request AI insights
-    F->>A: POST /api/ai-insights
-    A->>O: Create structured prompt with workbook summary
-    O-->>A: JSON insight payload
-    A-->>F: insights response
-    F-->>U: Executive summary + action items
-```
-
----
-
-## 12. Development conventions and code organization
-
-### Routing pattern
-
-The app uses `react-router-dom` and defines route-level pages in `App.jsx`:
-
-- `/` → dashboard
-- `/conversions` → conversions tools page
-- `*` → 404 page
-
-### Styling convention
-
-The app uses dedicated CSS files in `src/styles/` with component-style organization rather than a single large stylesheet.
-
-### State model
-
-The state is primarily local to pages/components using React hooks (`useState`, `useEffect`, `useMemo`, `useRef`).
-
-### Data transformation approach
-
-Workbook analysis is centralized in `workbook.js` instead of being buried in the dashboard component. This is the right pattern if more features are added because the transformation logic remains reusable and testable.
-
----
-
-## 13. Where to start if you are adding a new feature
-
-### If you want to add a new dashboard metric
-
-1. Update transformation logic in `src/utils/workbook.js`
-2. Reuse or extend summary builders in `Dashboard.jsx`
-3. Add UI cards or graphs where the dashboard renders KPI data
-
-### If you want to add a new conversion tool
-
-1. Create a new component under `src/components/tools/`
-2. Import and render it from `ToolModal.jsx`
-3. Add a tool entry in `EasyMadeConversions.jsx`
-4. Add any CSS requirements in `src/styles/tools.css` or the relevant stylesheet
-
-### If you want to add a new API endpoint
-
-1. Update `server.mjs`
-2. Add validation and environment handling
-3. Return consistent JSON error payloads
-4. Update frontend fetch logic in the relevant component/page
-
-### If you want to improve data analysis logic
-
-1. Start in `src/utils/workbook.js`
-2. Validate with sample files in the dashboard
-3. Avoid changing output contracts unless the AI schema or UI expects it
-
----
-
-## 14. Current application status
-
-This project is already functional as a spreadsheet analysis app with:
-
-- worksheet upload and parsing
-- KPI summary generation
-- chart visualizations
-- file conversion utilities
-- AI insight API integration
-- Firebase hosting configuration
-
-Some advanced features are still designed to be extended or refined depending on the product roadmap, especially around deeper file conversion accuracy and richer AI-driven business context.
-
----
-
-## 15. Recommended next steps for a developer or AI assistant
-
-To continue development effectively, the best onboarding sequence is:
-
-1. Read `src/utils/workbook.js` to understand the core business logic
-2. Read `src/pages/Dashboard.jsx` to see how the UI consumes the workbook analysis
-3. Read `server.mjs` to understand the OpenAI result contract and API behavior
-4. Read `src/components/ToolModal.jsx` and the `src/components/tools/` folder to extend the utility side
-5. Keep route and SEO updates in sync with `App.jsx`
-6. Validate with `npm run build` and `npm run lint` before finalizing changes
-
----
-
-## 16. Deployment notes
-
-This app is prepared for Firebase Hosting and a static frontend deployment. The frontend build output goes to `dist/`.
-
-### Build output
-
-```bash
-npm run build
-```
-
-### Firebase deployment
-
-```bash
-firebase deploy --only hosting
-```
-
-Because the AI backend is a Node/Express service, it does not live in the static front-end bundle alone. For production AI features, you will typically need a backend deployment strategy such as:
-
-- Firebase Functions
-- Cloud Run
-- a Node server on a VPS
-- a managed backend host
-
----
-
-## 17. Summary
-
-EasyMadeInsights is a practical business intelligence and conversion platform built for spreadsheet-powered decision making. It combines:
-
-- strong spreadsheet analytics workflows
-- interactive charting and KPI summaries
-- AI-powered business interpretation
-- utility tools for file and document transformation
-
-Its architecture is intentionally modular, making it straightforward for future developers to add new dashboards, tools, AI prompts, or export features without rewriting the app from scratch.
-
-This README is intended to be a working reference for both developers and AI assistants that need to understand the app's purpose, structure, dependencies, and extension points.
+OCR setup installs a checksum-verified official English Tesseract model into
+ignored `.ocr/tessdata/`. Provision it on each backend; no paid AI key or
+external document upload is needed for OCR.
+The backend automatically looks for this virtual environment. Activation is
+not required. Office/LibreOffice engines improve Word-to-PDF layout fidelity;
+the Python fallback provides a simpler text-and-table rendering. See
+[Development](docs/DEVELOPMENT.md) for cross-platform setup and prerequisites.
+
+A demonstration workbook is available at
+[public/easy-made-insights-demo.xlsx](public/easy-made-insights-demo.xlsx),
+served locally as `/easy-made-insights-demo.xlsx`. The bundled
+[demo PDF](public/easy-made-insights-demo.pdf) is for the conversion tool,
+not the spreadsheet uploader.
+
+## Technology
+
+| Layer | Technologies and responsibility |
+| --- | --- |
+| UI | React 18, React Router 7, custom CSS, browser APIs |
+| Analytics | SheetJS `xlsx`, application-specific cleaning and aggregation, Recharts 3 |
+| API | Node.js ES modules, Express 5, Multer, CORS, dotenv |
+| Document processing | PyMuPDF native text/Tesseract OCR, pdfplumber tables, python-docx, docx2pdf, ReportLab; optional LibreOffice for Word-to-PDF |
+| DOCX preview | `docx-preview`; PDF preview uses the browser's native viewer |
+| Experimental AI | OpenAI SDK and Chat Completions; dashboard integration is inactive |
+| Development | Vite 7, concurrently, ESLint, Playwright |
+| Static hosting | Firebase Hosting; no Firebase database/authentication SDK |
+
+[package.json](package.json), [package-lock.json](package-lock.json), and
+[python/requirements.txt](python/requirements.txt) are the dependency sources
+of truth. The React 19 type packages do not change the React 18 runtime.
+Some declared document packages are used by tests or retained from earlier
+implementation paths; see the architecture guide.
+
+## Commands
+
+| Command, from `client` | Purpose |
+| --- | --- |
+| `npm.cmd run dev` | Start frontend and API together |
+| `npm.cmd run dev:ui` | Start only Vite |
+| `npm.cmd run dev:api` | Start only Express |
+| `npm.cmd run lint` | Lint configured JavaScript/JSX sources |
+| `npm.cmd run check:syntax` | Check backend/config/test/helper ES module syntax |
+| `npm.cmd run check:docs` | Validate documentation links, examples, and command references |
+| `npm.cmd run build` | Generate the frontend in `dist/` |
+| `npm.cmd run preview` | Preview the build; does not start or proxy the API |
+| `npm.cmd run test:tools` | Run the conversion/utility browser regression suite |
+| `npm.cmd run test:smoke` | Test the built dashboard, routes, and assets after building |
+
+The parent workspace's `package.json` forwards `dev`, `lint`, `build`,
+and `preview` to `client`. Dependencies must still be installed in
+`client`. For tests from the parent directory, use
+`npm.cmd --prefix client run test:tools`.
+
+## Data and Interpretation
+
+Uploaded workbooks remain in browser memory in the current dashboard flow.
+They are not stored in a database or automatically sent to the AI endpoint.
+Image conversion, text comparison, and JWT decoding also run locally.
+Document conversion uploads the selected document to Express for temporary
+server-side processing.
+
+Automatic cleaning removes duplicate rows and fills missing values. Results
+therefore describe the **cleaned dataset**, not a lossless audit of the source.
+Charts show bounded subsets, currency-like names use USD formatting, and type
+detection is heuristic. Review the [User Guide](docs/USER_GUIDE.md) before using
+results for decisions.
+
+Workbook state is not persisted. Refreshing, closing the tab, resetting, or
+confirming a workspace switch loses the loaded dashboard session. Internal
+switches between Insights and Conversions, including browser Back/Forward,
+require confirmation; cancelling retains the current session. Conversions
+shows only a return link, not spreadsheet section navigation. A separate
+browser leave-page warning is registered while a workbook is loaded; its
+wording/display are controlled by the browser. These are routes on one site,
+not independently hosted subdomains.
+
+## Deployment and Readiness
+
+[firebase.json](firebase.json) deploys only `dist/` and rewrites unknown paths
+to the SPA. It does **not** deploy `server.mjs`, Python, or an API proxy.
+Document conversion requires a separately provisioned backend and either
+`VITE_API_BASE_URL` at build time or an API rewrite before the SPA fallback.
+
+The backend currently has no authentication, rate limiting, concurrency queue,
+or production-ready isolation of conversion processes. Health checks do not
+verify conversion engines. Public API deployment needs additional safeguards
+described in [Deployment](docs/DEPLOYMENT.md).
+
+The Playwright suites cover tools, real PDF/DOCX conversions, and built-dashboard
+smoke checks. Deeper analytics, accessibility, and hosted production checks still
+need additional coverage. The [production pipeline](docs/CI_CD.md) validates PRs
+into `prod` and deploys successful prod pushes to Firebase Hosting after all
+gates. GitHub credentials/environment/branch protection must be configured before
+use. There is no Docker deployment, Firebase Functions implementation, or license
+file in this checkout.

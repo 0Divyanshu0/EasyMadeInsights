@@ -9,6 +9,10 @@
     "dev:api": "node server.mjs",
     "build": "vite build",
     "lint": "eslint .",
+    "check:syntax": "node scripts/check-syntax.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
+    "test:tools": "playwright test",
+    "test:smoke": "playwright test --config playwright.smoke.config.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -30,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.64.0",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

@@ -3,190 +3,124 @@ import shutil
 import subprocess
 import sys
 import io
-from datetime import datetime
+from xml.sax.saxutils import escape
 
 
 def _bbox_intersects(a, b) -> bool:
-    ax0, ay0, ax1, ay1 = a
-    bx0, by0, bx1, by1 = b
-    return not (ax1 <= bx0 or bx1 <= ax0 or ay1 <= by0 or by1 <= ay0)
+    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
 
 
-def _sort_element_key(element):
-    bbox = element.get("bbox") or [0, 0, 0, 0]
-    element_rank = {
-        "heading": 0,
-        "paragraph": 1,
-        "caption": 2,
-        "list_item": 3,
-        "table": 4,
-        "image": 5,
-    }.get(element.get("type"), 99)
-    return (float(bbox[1]), float(bbox[0]), element_rank)
+def _ocr_data_directory():
+    from pathlib import Path
+    candidates = [
+        os.environ.get("TESSDATA_PREFIX"),
+        str(Path(__file__).resolve().parent.parent / ".ocr" / "tessdata"),
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tesseract-ocr/4.00/tessdata",
+        r"C:\Program Files\Tesseract-OCR\tessdata",
+    ]
+    for candidate in candidates:
+        if candidate and (Path(candidate) / "eng.traineddata").is_file():
+            return candidate
+    raise RuntimeError(
+        "This PDF needs OCR to produce editable text. English OCR data is not installed. "
+        "Run python python/setup_ocr.py on the conversion server, then retry."
+    )
 
 
-def _extract_pdf_pages_structure(input_path: str):
+def _extract_pdf_pages_structure(input_path: str, ocr_mode="auto"):
+    import fitz
     import pdfplumber
-    from pypdf import PdfReader
 
-    structured_pages = []
-
-    reader = PdfReader(input_path)
-    with pdfplumber.open(input_path) as pdfplumber_doc:
-        for page_index in range(len(pdfplumber_doc.pages)):
-            plumber_page = pdfplumber_doc.pages[page_index]
-            elements = []
-
-            table_bboxes = []
-            try:
-                tables = plumber_page.find_tables()
-            except Exception:
-                tables = []
-
-            for table_index, table in enumerate(tables, start=1):
-                rows = table.extract() or []
-                if not rows:
-                    continue
-                table_bboxes.append(tuple(table.bbox))
-                elements.append(
-                    {
-                        "type": "table",
-                        "page": page_index + 1,
-                        "order": table_index,
-                        "content": rows,
-                        "bbox": list(table.bbox),
-                    }
-                )
-
-            try:
-                words = plumber_page.extract_words(
-                    use_text_flow=True,
-                    keep_blank_chars=False,
-                    extra_attrs=["fontname", "size"],
-                )
-            except Exception:
-                words = []
-
-            words = sorted(words, key=lambda item: (round(item.get("top", 0), 1), item.get("x0", 0)))
-
-            line_groups = []
-            current_line = []
-            current_top = None
-            line_tolerance = 3.0
-
-            for word in words:
-                bbox = (word.get("x0", 0), word.get("top", 0), word.get("x1", 0), word.get("bottom", 0))
-                if any(_bbox_intersects(bbox, table_bbox) for table_bbox in table_bboxes):
-                    continue
-
-                word_top = float(word.get("top", 0))
-                if current_top is None or abs(word_top - current_top) <= line_tolerance:
-                    current_line.append(word)
-                    current_top = word_top if current_top is None else min(current_top, word_top)
-                else:
-                    if current_line:
-                        line_groups.append(current_line)
-                    current_line = [word]
-                    current_top = word_top
-
-            if current_line:
-                line_groups.append(current_line)
-
-            for line_index, line_words in enumerate(line_groups, start=1):
-                line_words = sorted(line_words, key=lambda item: item.get("x0", 0))
-                content = " ".join((word.get("text") or "").strip() for word in line_words).strip()
-                if not content:
-                    continue
-
-                font_sizes = [float(word.get("size", 0) or 0) for word in line_words if word.get("size")]
-                bold_count = sum(1 for word in line_words if "bold" in str(word.get("fontname") or "").lower())
-                max_font_size = max(font_sizes) if font_sizes else 0
-                word_count = len(content.split())
-                first_token = content.strip().lower()
-
-                element_type = "paragraph"
-                heading_level = None
-
-                if max_font_size >= 18 and len(content) <= 120:
-                    element_type = "heading"
-                    heading_level = 1
-                elif max_font_size >= 15 and len(content) <= 160:
-                    element_type = "heading"
-                    heading_level = 2
-                elif max_font_size >= 13 and len(content) <= 200:
-                    element_type = "heading"
-                    heading_level = 3
-                elif (first_token.startswith("figure") or first_token.startswith("table")) and word_count <= 20:
-                    element_type = "caption"
-                elif first_token[:2] in {"- ", "• ", "* "} or first_token[:3].isdigit():
-                    element_type = "list_item"
-
-                line_top = min(float(word.get("top", 0)) for word in line_words)
-                line_left = min(float(word.get("x0", 0)) for word in line_words)
-                line_bottom = max(float(word.get("bottom", 0)) for word in line_words)
-                line_right = max(float(word.get("x1", 0)) for word in line_words)
-
-                elements.append(
-                    {
-                        "type": element_type,
-                        "page": page_index + 1,
-                        "order": line_index,
-                        "content": content,
-                        "bbox": [line_left, line_top, line_right, line_bottom],
-                        "heading_level": heading_level,
-                        "bold": bold_count > 0,
-                    }
-                )
-
-            try:
-                image_refs = reader.pages[page_index].images
-            except Exception:
-                image_refs = []
-
-            image_xrefs = set()
-            for image_index, image_info in enumerate(image_refs, start=1):
-                image_name = getattr(image_info, "name", None) or getattr(image_info, "key", None) or str(image_index)
-                if image_name in image_xrefs:
-                    continue
-                image_xrefs.add(image_name)
-                try:
-                    image_bytes = image_info.data if hasattr(image_info, "data") else None
-                    bbox = [0, 0, 0, 0]
-                    if hasattr(image_info, "bbox") and image_info.bbox:
-                        bbox = list(image_info.bbox)
-
-                    elements.append(
-                        {
-                            "type": "image",
-                            "page": page_index + 1,
-                            "order": image_index,
-                            "content": "",
-                            "bbox": bbox,
-                            "image_bytes": image_bytes,
-                            "image_ext": getattr(image_info, "ext", "png"),
-                        }
-                    )
-                except Exception:
-                    continue
-
-            structured_pages.append(
-                {
-                    "page": page_index + 1,
-                    "elements": sorted(elements, key=_sort_element_key),
-                }
+    pages = []
+    with fitz.open(input_path) as pdf, pdfplumber.open(input_path) as tables_pdf:
+        if pdf.needs_pass:
+            raise RuntimeError("Password-protected PDFs must be unlocked before conversion.")
+        if len(pdf) > 100:
+            raise RuntimeError("Convert at most 100 PDF pages at a time.")
+        for page_index, page in enumerate(pdf):
+            native = page.get_text("dict", sort=True)
+            native_text = page.get_text("text").strip()
+            images = [block for block in native["blocks"] if block["type"] == 1]
+            area = max(1, page.rect.width * page.rect.height)
+            scan_background = any(
+                fitz.Rect(block["bbox"]).get_area() / area >= 0.6 for block in images
             )
+            # A sparse text layer over a page scan must not mask its unreadable body.
+            needs_ocr = ocr_mode == "force" or not native_text or (scan_background and len(native_text) < 200)
+            if needs_ocr:
+                if not images and not page.get_drawings() and not native_text:
+                    pages.append({"elements": [], "ocr": False})
+                    continue
+                dpi = min(200, int(72 * (16000000 / area) ** 0.5))
+                if dpi < 72:
+                    raise RuntimeError("This page is too large for OCR. Use a smaller page size.")
+                try:
+                    textpage = page.get_textpage_ocr(
+                        language="eng", dpi=dpi, full=True, tessdata=_ocr_data_directory()
+                    )
+                    native = page.get_text("dict", textpage=textpage, sort=True)
+                except RuntimeError as error:
+                    if "OCR data is not installed" in str(error):
+                        raise
+                    raise RuntimeError(
+                        f"OCR failed on page {page_index + 1}. Check the OCR data and scan quality."
+                    ) from error
 
-    return structured_pages
+            elements = []
+            table_boxes = []
+            if not needs_ocr:
+                try:
+                    tables = tables_pdf.pages[page_index].find_tables()
+                except Exception:
+                    tables = []
+                for table in tables:
+                    rows = table.extract() or []
+                    if rows and any(any(str(cell or "").strip() for cell in row) for row in rows):
+                        table_boxes.append(table.bbox)
+                        elements.append({"type": "table", "bbox": table.bbox, "content": rows})
+
+            for block in native["blocks"]:
+                if block["type"] != 0:
+                    continue
+                lines = []
+                for line in block["lines"]:
+                    if any(_bbox_intersects(line["bbox"], bbox) for bbox in table_boxes):
+                        continue
+                    spans = [span for span in line["spans"] if span["text"].strip()]
+                    if spans:
+                        lines.append(spans)
+                if not lines:
+                    continue
+                text = " ".join("".join(span["text"] for span in line) for line in lines).strip()
+                if not text:
+                    continue
+                maximum_size = max(span["size"] for line in lines for span in line)
+                elements.append({
+                    "type": "text", "bbox": block["bbox"], "lines": lines,
+                    "heading": (1 if maximum_size >= 18 else 2) if maximum_size >= 15 and len(text) < 160 else None,
+                })
+
+            # Keep actual illustrations, never a full-page scan standing in for its text.
+            if not needs_ocr:
+                for block in images:
+                    if fitz.Rect(block["bbox"]).get_area() / area < 0.6:
+                        elements.append({"type": "image", "bbox": block["bbox"], "image_bytes": block["image"]})
+            elements.sort(key=lambda element: (round(element["bbox"][1], 1), element["bbox"][0]))
+            has_text = any(element["type"] in ("text", "table") for element in elements)
+            if needs_ocr and not has_text:
+                raise RuntimeError(
+                    f"No readable text was found on scanned page {page_index + 1}. "
+                    "Try a clearer scan; photographs cannot become editable text."
+                )
+            pages.append({"elements": elements, "ocr": needs_ocr})
+    return pages
 
 
 def _add_docx_table(document, rows):
-    if not rows:
-        return
-
     max_columns = max(len(row) for row in rows)
     table = document.add_table(rows=len(rows), cols=max_columns)
     table.style = "Table Grid"
-
     for row_index, row in enumerate(rows):
         for column_index in range(max_columns):
             value = row[column_index] if column_index < len(row) else ""
@@ -197,127 +131,58 @@ def _add_docx_table(document, rows):
                     for run in paragraph.runs:
                         run.bold = True
 
-    document.add_paragraph("")
-
 
 def _add_docx_image(document, image_bytes, bbox):
     from docx.shared import Inches
-
-    if not image_bytes:
-        return
-
-    max_width_inches = 6.5
     try:
-        if bbox and len(bbox) == 4:
-            width_inches = max(1.0, min(max_width_inches, float(bbox[2] - bbox[0]) / 72.0))
-        else:
-            width_inches = max_width_inches
-    except Exception:
-        width_inches = max_width_inches
-
-    try:
-        document.add_picture(io.BytesIO(image_bytes), width=Inches(width_inches))
-        document.add_paragraph("")
+        document.add_picture(io.BytesIO(image_bytes), width=Inches(min(6.5, max(0.25, (bbox[2] - bbox[0]) / 72))))
     except Exception:
         pass
 
 
-def _add_docx_text(document, element):
-    content = element.get("content") or ""
-    element_type = element.get("type")
-
-    if element_type == "heading":
-        level = int(element.get("heading_level") or 2)
-        level = max(1, min(3, level))
-        document.add_heading(content, level=level)
-        return
-
-    if element_type == "caption":
-        paragraph = document.add_paragraph()
-        run = paragraph.add_run(content)
-        run.italic = True
-        return
-
-    if element_type == "list_item":
-        paragraph = document.add_paragraph(style="List Bullet")
-        paragraph.add_run(content)
-        return
-
-    for block in content.split("\n"):
-        if block.strip():
-            document.add_paragraph(block.strip())
-        else:
-            document.add_paragraph("")
+def _add_editable_text(document, element, ocr):
+    from docx.shared import Pt, RGBColor
+    paragraph = document.add_paragraph(style=f"Heading {element['heading']}" if element["heading"] else None)
+    for line_index, line in enumerate(element["lines"]):
+        if line_index:
+            paragraph.add_run(" ")
+        for span in line:
+            run = paragraph.add_run(span["text"])
+            if not ocr:
+                run.font.size = Pt(min(48, max(6, span["size"])))
+                run.bold = bool(span.get("flags", 0) & 16)
+                run.italic = bool(span.get("flags", 0) & 2)
+                run.font.color.rgb = RGBColor.from_string(f"{span.get('color', 0):06X}"[-6:])
 
 
-def convert_pdf_to_word(input_path: str, output_path: str) -> None:
-    # 1) Preferred high-fidelity converter (if available)
-    try:
-        from pdf2docx import Converter
-
-        converter = Converter(input_path)
-        try:
-            converter.convert(output_path, start=0, end=None)
-            if os.path.exists(output_path):
-                return
-        finally:
-            converter.close()
-    except Exception:
-        pass
-
-    # 2) Fallback: structure-first page parser using PyMuPDF + pdfplumber + python-docx
-    try:
-        from docx import Document
-
-        structured_pages = _extract_pdf_pages_structure(input_path)
-        doc = Document()
-
-        for page_index, page in enumerate(structured_pages):
-            if page_index > 0:
-                doc.add_page_break()
-
-            for element in page["elements"]:
-                element_type = element.get("type")
-                if element_type == "table":
-                    _add_docx_table(doc, element.get("content") or [])
-                elif element_type == "image":
-                    _add_docx_image(doc, element.get("image_bytes"), element.get("bbox"))
-                else:
-                    _add_docx_text(doc, element)
-
-        doc.save(output_path)
-        if os.path.exists(output_path):
-            return
-    except Exception:
-        pass
-
-    # 3) Last-resort fallback: always produce a valid DOCX (prevents hard failure)
-    # Useful for scanned/corrupt PDFs where parsers fail in restricted environments.
-    try:
-        from docx import Document
-
-        doc = Document()
-        doc.add_heading("PDF Conversion (Fallback Mode)", level=1)
-        doc.add_paragraph(
-            "This document was generated in fallback mode because rich PDF parsing "
-            "was unavailable for the source file in the current environment."
-        )
-        doc.add_paragraph(f"Source file: {os.path.basename(input_path)}")
-        doc.add_paragraph(f"Generated at: {datetime.utcnow().isoformat()}Z")
-        doc.add_paragraph(
-            "Tip: Install full converter dependencies (pdf2docx or LibreOffice) for higher layout fidelity."
-        )
-        doc.save(output_path)
-
-        if os.path.exists(output_path):
-            return
-    except Exception:
-        pass
-
-    raise RuntimeError(
-        "Unable to convert PDF to Word in current environment. Install pdf2docx for full fidelity, "
-        "or ensure pypdf + python-docx are installed for fallback conversion."
+def _has_editable_docx_content(output_path):
+    from docx import Document
+    document = Document(output_path)
+    return any(paragraph.text.strip() for paragraph in document.paragraphs) or any(
+        cell.text.strip() for table in document.tables for row in table.rows for cell in row.cells
     )
+
+
+def convert_pdf_to_word(input_path: str, output_path: str, ocr_mode="auto") -> None:
+    from docx import Document
+
+    pages = _extract_pdf_pages_structure(input_path, ocr_mode)
+    if not any(element["type"] in ("text", "table") for page in pages for element in page["elements"]):
+        raise RuntimeError("No editable text could be extracted from this PDF.")
+    document = Document()
+    for page_index, page in enumerate(pages):
+        if page_index:
+            document.add_page_break()
+        for element in page["elements"]:
+            if element["type"] == "table":
+                _add_docx_table(document, element["content"])
+            elif element["type"] == "image":
+                _add_docx_image(document, element["image_bytes"], element["bbox"])
+            else:
+                _add_editable_text(document, element, page["ocr"])
+    document.save(output_path)
+    if not _has_editable_docx_content(output_path):
+        raise RuntimeError("Conversion produced no editable text. Image-only Word output was rejected.")
 
 
 def convert_word_to_pdf(input_path: str, output_path: str) -> None:
@@ -354,37 +219,41 @@ def convert_word_to_pdf(input_path: str, output_path: str) -> None:
                 os.replace(generated, output_path)
             return
 
-    # 3) Fallback: reportlab (text-only, but always works)
+    # Simplified fallback preserves text and tables, with wrapping and pagination.
     try:
         from docx import Document
         from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.units import inch
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib import colors
+        from docx.text.paragraph import Paragraph as WordParagraph
+        from docx.table import Table as WordTable
 
         doc = Document(input_path)
-        c = canvas.Canvas(output_path, pagesize=letter)
-        width, height = letter
-        y_position = height - inch
-        line_height = 14
-
-        for para in doc.paragraphs:
-            if not para.text.strip():
-                y_position -= line_height
-                continue
-
-            text = para.text
-            indent = len(para.text) - len(para.text.lstrip())
-            x_position = inch + (indent * 10)
-
-            c.setFont("Helvetica", 10)
-            c.drawString(x_position, y_position, text[:100])
-
-            y_position -= line_height
-            if y_position < inch:
-                c.showPage()
-                y_position = height - inch
-
-        c.save()
+        styles = getSampleStyleSheet()
+        story = []
+        for element in doc.element.body:
+            if element.tag.endswith("}p"):
+                paragraph = WordParagraph(element, doc)
+                if paragraph.text.strip():
+                    name = paragraph.style.name
+                    style = styles["Heading1"] if name.startswith("Heading") else styles["BodyText"]
+                    story.append(Paragraph(escape(paragraph.text).replace("\n", "<br/>"), style))
+                story.append(Spacer(1, 8))
+            elif element.tag.endswith("}tbl"):
+                table = WordTable(element, doc)
+                cells = [[Paragraph(escape(cell.text).replace("\n", "<br/>"), styles["BodyText"])
+                          for cell in row.cells] for row in table.rows]
+                if cells:
+                    rendered = Table(cells, colWidths=[468 / len(cells[0])] * len(cells[0]), repeatRows=1)
+                    rendered.setStyle(TableStyle([
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ]))
+                    story.extend([rendered, Spacer(1, 12)])
+        if not any(isinstance(item, (Paragraph, Table)) for item in story):
+            raise RuntimeError("No text or tables could be extracted from this document.")
+        SimpleDocTemplate(output_path, pagesize=letter).build(story)
         return
     except Exception:
         pass
@@ -396,11 +265,15 @@ def convert_word_to_pdf(input_path: str, output_path: str) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        print("Usage: python convert_tool.py <pdf-to-word|word-to-pdf> <input> <output>", file=sys.stderr)
+    if len(sys.argv) not in (4, 5):
+        print("Usage: python convert_tool.py <pdf-to-word|word-to-pdf> <input> <output> [auto|force]", file=sys.stderr)
         return 2
 
     mode, input_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    ocr_mode = sys.argv[4] if len(sys.argv) == 5 else "auto"
+    if ocr_mode not in ("auto", "force"):
+        print("OCR mode must be auto or force.", file=sys.stderr)
+        return 2
 
     if not os.path.exists(input_path):
         print(f"Input file not found: {input_path}", file=sys.stderr)
@@ -408,7 +281,7 @@ def main() -> int:
 
     try:
         if mode == "pdf-to-word":
-            convert_pdf_to_word(input_path, output_path)
+            convert_pdf_to_word(input_path, output_path, ocr_mode)
         elif mode == "word-to-pdf":
             convert_word_to_pdf(input_path, output_path)
         else:

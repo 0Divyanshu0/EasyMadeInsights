@@ -374,6 +374,7 @@
   min-height: 360px;
   border: 0;
   background: white;
+  color-scheme: light;
 }
 
 .preview-split {
@@ -583,6 +584,15 @@
 }
 
 /* Common Styles */
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+[data-theme="dark"] .error-message { color: #fca5a5; }
+[data-theme="dark"] .info-message { color: #93c5fd; }
+
 .error-message {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid #fca5a5;
@@ -1362,54 +1372,27 @@
 
 .docx-preview-host {
   width: 100%;
+  min-width: 0;
   overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  padding: 0.75rem;
+  background: #e2e8f0;
+  color: #000000;
+  color-scheme: light;
+  border-radius: 10px;
+  padding: .75rem;
 }
-
 .docx-preview-host .docx-wrapper {
   background: transparent !important;
   padding: 0 !important;
+  display: block;
 }
-
+.docx-preview-host > .info-message { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.docx-page-frame { position: relative; margin: 0 auto 1rem; }
+.docx-page-scale { position: absolute; top: 0; left: 0; transform-origin: top left; }
+/* Scaling wrappers bypass docx-preview's direct-child white-paper selector. */
 .docx-preview-host section.docx {
-  box-shadow: none !important;
-  margin: 0 auto 1rem !important;
-  width: auto !important;
-  max-width: 100% !important;
+  background-color: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+  flex-shrink: 0;
 }
-
-.docx-preview-host .docx table {
-  width: auto !important;
-  max-width: 100% !important;
-  table-layout: auto !important;
-  border-collapse: collapse !important;
-  border-spacing: 0 !important;
-  display: table !important;
-}
-
-.docx-preview-host .docx td,
-.docx-preview-host .docx th {
-  white-space: normal !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
-  vertical-align: top !important;
-  min-width: 2rem !important;
-  max-width: 22rem !important;
-  padding: 0.35rem 0.5rem !important;
-}
-
-.docx-preview-host .docx p {
-  margin: 0 !important;
-}
-
-.docx-preview-host .docx-wrapper {
-  overflow-x: auto !important;
-}
-
-.docx-preview-host img {
-  max-width: 100% !important;
-  height: auto !important;
-}
+.preview-panel { min-width: 0; }
+.preview-panel > .docx-preview-host { max-height: 420px; }

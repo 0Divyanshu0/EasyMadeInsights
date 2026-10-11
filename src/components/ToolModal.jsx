@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import Dialog from "./Dialog";
 import JWTDecoder from "./tools/JWTDecoder";
 import ImageConverter from "./tools/ImageConverter";
 import FileComparison from "./tools/FileComparison";
@@ -42,7 +43,11 @@ export default function ToolModal({ tool, isOpen, onClose }) {
   );
 
   useEffect(() => {
-    if (!tool) return;
+    if (!isOpen || !tool) return;
+
+    const previousTitle = document.title;
+    const savedMeta = Array.from(document.querySelectorAll('meta[name="description"], meta[property="og:title"], meta[property="og:description"]'))
+      .map((element) => [element, element.getAttribute("content")]);
 
     document.title = currentMeta.title;
 
@@ -61,7 +66,11 @@ export default function ToolModal({ tool, isOpen, onClose }) {
     if (metaOgDescription) {
       metaOgDescription.setAttribute("content", currentMeta.description);
     }
-  }, [currentMeta, tool]);
+    return () => {
+      document.title = previousTitle;
+      savedMeta.forEach(([element, content]) => content === null ? element.removeAttribute("content") : element.setAttribute("content", content));
+    };
+  }, [currentMeta, tool, isOpen]);
 
   if (!isOpen || !tool) {
     return null;
@@ -74,9 +83,11 @@ export default function ToolModal({ tool, isOpen, onClose }) {
       case "image-converter":
         return <ImageConverter />;
       case "jpg-to-png":
+        return <ImageConverter initialFormat="png" />;
       case "png-to-jpg":
+        return <ImageConverter initialFormat="jpg" />;
       case "png-to-favicon":
-        return <ImageConverter />;
+        return <ImageConverter initialFormat="favicon" />;
       case "file-compare":
         return <FileComparison />;
       case "pdf-to-word":
@@ -88,17 +99,8 @@ export default function ToolModal({ tool, isOpen, onClose }) {
     }
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{tool.name}</h2>
-          <button className="close-btn" onClick={onClose} aria-label="Close tool">
-            ×
-          </button>
-        </div>
-        <div className="modal-body">{renderTool()}</div>
-      </div>
-    </div>
-  );
+  return <Dialog title={tool.name} onClose={onClose} closeLabel="Close tool"
+    className={["image-converter", "jpg-to-png", "png-to-jpg", "png-to-favicon"].includes(tool.id) ? "image-studio-modal" : ""}>
+    {renderTool()}
+  </Dialog>;
 }

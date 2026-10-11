@@ -33,7 +33,12 @@ function runProcess(command, args) {
     const child = spawn(command, args, {
       cwd: __dirname,
       windowsHide: true,
+      stdio: ["ignore", "ignore", "pipe"],
     });
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("Document conversion timed out. Try a smaller file."));
+    }, 90000);
 
     let stderr = "";
 
@@ -42,10 +47,12 @@ function runProcess(command, args) {
     });
 
     child.on("error", (error) => {
+      clearTimeout(timer);
       reject(error);
     });
 
     child.on("close", (code) => {
+      clearTimeout(timer);
       if (code === 0) {
         resolve();
       } else {
@@ -55,16 +62,17 @@ function runProcess(command, args) {
   });
 }
 
-async function runPythonConverter(mode, inputPath, outputPath) {
+async function runPythonConverter(mode, inputPath, outputPath, options = []) {
   const scriptPath = path.join(__dirname, "python", "convert_tool.py");
   const configuredPython = process.env.PYTHON_BIN;
-  const detectedPython = "C:/Users/mostw/.local/bin/python3.14.exe";
+  const localPython = path.join(__dirname, ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+  const argumentsList = [scriptPath, mode, inputPath, outputPath, ...options];
   const pythonCommands = [
-    ...(configuredPython ? [[configuredPython, [scriptPath, mode, inputPath, outputPath]]] : []),
-    [detectedPython, [scriptPath, mode, inputPath, outputPath]],
-    ["python3", [scriptPath, mode, inputPath, outputPath]],
-    ["python", [scriptPath, mode, inputPath, outputPath]],
-    ["py", [scriptPath, mode, inputPath, outputPath]],
+    ...(configuredPython ? [[configuredPython, argumentsList]] : []),
+    [localPython, argumentsList],
+    ["python", argumentsList],
+    ["python3", argumentsList],
+    ["py", argumentsList],
   ];
 
   let lastError;
@@ -210,6 +218,7 @@ app.post("/api/convert/pdf-to-word", upload.single("file"), async (req, res) => 
     console.log(`📄 PDF-to-Word: Processing ${originalName}`);
     
     if (!originalName.toLowerCase().endsWith(".pdf")) {
+      await safeUnlink(uploadedPath);
       console.log(`❌ PDF-to-Word: Invalid file type: ${originalName}`);
       return res.status(400).json({ error: "Only PDF files are supported." });
     }
@@ -221,21 +230,13 @@ app.post("/api/convert/pdf-to-word", upload.single("file"), async (req, res) => 
     const outputName = `${path.parse(originalName).name}.docx`;
 
     console.log(`⚙️  PDF-to-Word: Starting conversion...`);
-    try {
-      await runPythonConverter("pdf-to-word", inputPath, outputPath);
-      console.log(`✅ PDF-to-Word: Python conversion complete`);
-    } catch (pythonError) {
-      console.warn(`⚠️  PDF-to-Word Python failed: ${pythonError?.message}`);
-      console.log("↪ Trying LibreOffice fallback for PDF->DOCX...");
-      try {
-        await runSofficeConverter(inputPath, outputPath, "docx");
-        console.log("✅ PDF-to-Word: LibreOffice fallback complete");
-      } catch (officeError) {
-        throw new Error(
-          `Both conversion engines failed. Python: ${pythonError?.message || "unknown"}. LibreOffice: ${officeError?.message || "unknown"}.`
-        );
-      }
+    const ocrMode = req.body?.ocrMode ?? "auto";
+    if (!["auto", "force"].includes(ocrMode)) {
+      await safeUnlink(inputPath);
+      return res.status(400).json({ error: "Text recovery mode must be auto or force." });
     }
+    // Do not fall back to an image-only office export after editable extraction fails.
+    await runPythonConverter("pdf-to-word", inputPath, outputPath, [ocrMode]);
 
     const buffer = await fs.readFile(outputPath);
     await safeUnlink(inputPath);
@@ -245,7 +246,7 @@ app.post("/api/convert/pdf-to-word", upload.single("file"), async (req, res) => 
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${outputName}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="converted.docx"; filename*=UTF-8''${encodeURIComponent(outputName)}`);
     return res.send(buffer);
   } catch (error) {
     console.error(`❌ PDF-to-Word Error: ${error.message}`);
@@ -274,6 +275,7 @@ app.post("/api/convert/word-to-pdf", upload.single("file"), async (req, res) => 
     
     const lower = originalName.toLowerCase();
     if (!lower.endsWith(".doc") && !lower.endsWith(".docx")) {
+      await safeUnlink(uploadedPath);
       console.log(`❌ Word-to-PDF: Invalid file type: ${originalName}`);
       return res.status(400).json({ error: "Only .doc/.docx files are supported." });
     }
@@ -306,7 +308,7 @@ app.post("/api/convert/word-to-pdf", upload.single("file"), async (req, res) => 
     await safeUnlink(outputPath);
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${outputName}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="converted.pdf"; filename*=UTF-8''${encodeURIComponent(outputName)}`);
     return res.send(buffer);
   } catch (error) {
     console.error(`❌ Word-to-PDF Error: ${error.message}`);
@@ -393,6 +395,13 @@ app.post("/api/ai-insights", async (req, res) => {
         "Something went wrong while generating AI insights.",
     });
   }
+});
+
+app.use((error, _req, res, _next) => {
+  const tooLarge = error.code === "LIMIT_FILE_SIZE" || error.type === "entity.too.large";
+  res.status(tooLarge ? 413 : 400).json({
+    error: tooLarge ? "The file is too large. Maximum document size is 50 MB." : "Invalid conversion request. Please select one supported file.",
+  });
 });
 
 // 404 handler - must come after all routes
