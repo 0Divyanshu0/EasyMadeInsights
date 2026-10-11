@@ -7,6 +7,9 @@ export default defineConfig({
     jsxRuntime: 'automatic'
   })],
   server: {
+    watch: {
+      ignored: ["**/.venv/**", "**/.ocr/**", "**/test-results/**", "**/playwright-report/**", "**/__pycache__/**"],
+    },
     proxy: {
       "/api": {
         target: "http://localhost:8787",

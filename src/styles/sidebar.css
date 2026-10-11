@@ -12,10 +12,12 @@
   border-right: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-.brand h1 {
+.brand-name {
   font-size: 22px;
   margin: 0 0 6px 0;
   letter-spacing: 0.2px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .brand small {

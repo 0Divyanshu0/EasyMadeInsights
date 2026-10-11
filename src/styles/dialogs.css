@@ -1,0 +1,52 @@
+.expanded-preview.modal-content {
+  max-width: 1320px;
+  height: 92vh;
+  height: 92dvh;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.expanded-preview .modal-header { flex-shrink: 0; padding: 1rem 1.5rem; }
+.expanded-preview .modal-title, .workspace-confirmation .modal-title { white-space: normal; overflow-wrap: anywhere; }
+.expanded-preview .modal-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; padding: 1rem; gap: 1rem; }
+.preview-toolbar { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.preview-toolbar div { display: flex; gap: .5rem; }
+.preview-toolbar button, .preview-expand, .workspace-switch {
+  padding: .65rem .9rem; border: 1px solid var(--panel-border); border-radius: 9px;
+  background: var(--surface); color: var(--text); cursor: pointer; font: inherit;
+}
+.preview-toolbar button[aria-pressed="true"] { background: var(--primary); color: white; }
+.preview-toolbar button:disabled, .preview-expand:disabled { opacity: .5; cursor: not-allowed; }
+.preview-toolbar input { max-width: 100%; padding: .6rem; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.expanded-preview-stage { flex: 1 0 200px; min-height: 200px; min-width: 0; overflow: auto; background: var(--surface-soft); border: 1px solid var(--panel-border); border-radius: 10px; }
+.document-preview-stage { background: #e2e8f0; color-scheme: light; }
+.image-checkerboard { background-color: #e2e8f0; background-image: conic-gradient(#cbd5e1 25%, transparent 0 50%, #cbd5e1 0 75%, transparent 0); background-size: 24px 24px; }
+.expanded-image { padding: 1rem; }
+.expanded-image.fit { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+.expanded-image.fit img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.expanded-image.actual { width: max-content; min-width: 100%; }
+.expanded-image.actual img { max-width: none; display: block; }
+.expanded-pdf { display: block; width: 100%; height: 100%; min-height: 100%; border: 0; background: white; color-scheme: light; }
+.preview-footnote { flex-shrink: 0; font-size: .8rem; color: var(--text-soft); margin: 0; }
+.full-sheet-table { border-collapse: collapse; min-width: 100%; width: max-content; }
+.full-sheet-table th, .full-sheet-table td { text-align: left; padding: .85rem; border-bottom: 1px solid var(--panel-border); max-width: 26rem; min-width: 9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.full-sheet-table th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.workspace-confirmation { max-width: 560px; }
+.workspace-confirmation p { line-height: 1.7; }
+.workspace-confirmation .tool-actions { margin-top: 1.5rem; }
+.sidebar .workspace-nav { border-top: 1px solid var(--panel-border); margin-top: 1rem; padding-top: 1rem; }
+.mobile-workspace-switch { display: none; }
+.takeaways { border: 1px solid var(--panel-border); padding: 1.5rem; border-radius: 20px; background: linear-gradient(125deg, var(--panel), var(--surface-soft)); }
+.takeaways-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.takeaways-header h3 { margin: 0; }
+.local-analysis-badge { color: var(--primary); border: 1px solid var(--panel-border); padding: .45rem .7rem; border-radius: 999px; font-size: .8rem; }
+.takeaways-context { color: var(--text-soft); line-height: 1.6; }
+.takeaways-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.takeaway-card { border: 1px solid var(--panel-border); background: var(--surface); border-radius: 14px; padding: 1.25rem; min-width: 0; }
+.takeaway-card h4 { color: var(--primary); margin: 0 0 .75rem; }
+.takeaway-card strong { font-size: 1.5rem; overflow-wrap: anywhere; }
+.takeaway-card p { line-height: 1.6; color: var(--text-soft); }
+@media (max-width: 960px) { .mobile-workspace-switch { display: block; } .takeaways-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .modal-overlay { padding: .5rem; } .expanded-preview .modal-body { padding: .65rem; } .expanded-preview .modal-header { padding: .85rem; } .nav-actions { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .modal-overlay, .modal-content { animation: none; } }

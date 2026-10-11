@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">EasyMadeInsights: from spreadsheets to a clearer next step</title>
+  <desc id="description">A branded blue and cream illustration of spreadsheet rows becoming charts, with workbook analytics and file tools as two connected workspaces.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1200" y2="420" gradientUnits="userSpaceOnUse"><stop stop-color="#F8FAFC"/><stop offset="1" stop-color="#DBEAFE"/></linearGradient>
+    <linearGradient id="card" x1="730" y1="92" x2="1080" y2="360" gradientUnits="userSpaceOnUse"><stop stop-color="#122849"/><stop offset="1" stop-color="#0B1730"/></linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" stroke="#2563EB" stroke-opacity=".055"/></pattern>
+  </defs>
+  <rect width="1200" height="420" rx="24" fill="url(#background)"/>
+  <rect width="1200" height="420" rx="24" fill="url(#grid)"/>
+  <circle cx="1110" cy="42" r="190" fill="#60A5FA" opacity=".12"/>
+  <circle cx="760" cy="422" r="132" fill="#38BDF8" opacity=".08"/>
+  <g font-family="Segoe UI, Helvetica, sans-serif">
+    <rect x="48" y="38" width="42" height="42" rx="12" fill="#2563EB"/>
+    <path d="M59 66V58M69 66V52M79 66V46" stroke="white" stroke-width="5" stroke-linecap="round"/>
+    <text x="104" y="67" fill="#0F172A" font-size="27" font-weight="750">EasyMade<tspan fill="#2563EB">Insights</tspan></text>
+    <text x="50" y="115" fill="#475569" font-size="12" letter-spacing="2.5" font-weight="700">LESS FRICTION. MORE PERSPECTIVE.</text>
+    <text x="48" y="186" fill="#0F172A" font-family="Georgia, serif" font-size="53">From spreadsheets to</text>
+    <text x="48" y="250" fill="#2563EB" font-family="Georgia, serif" font-size="53">a clearer next step.</text>
+    <text x="50" y="296" fill="#475569" font-size="20">Explore your data. Shape your charts. Simplify your files.</text>
+    <rect x="50" y="328" width="220" height="40" rx="20" fill="#0F172A"/>
+    <text x="160" y="353" fill="white" font-size="14" text-anchor="middle" font-weight="600">WORKBOOK ANALYTICS</text>
+    <rect x="282" y="328" width="162" height="40" rx="20" fill="white" stroke="#BFDBFE"/>
+    <text x="363" y="353" fill="#1D4ED8" font-size="14" text-anchor="middle" font-weight="600">FILE TOOLS</text>
+    <rect x="718" y="78" width="414" height="288" rx="22" fill="#94A3B8" opacity=".12"/>
+    <rect x="708" y="66" width="414" height="288" rx="22" fill="url(#card)"/>
+    <circle cx="732" cy="88" r="4" fill="#60A5FA"/><circle cx="748" cy="88" r="4" fill="#334155"/><circle cx="764" cy="88" r="4" fill="#334155"/>
+    <text x="735" y="131" fill="#DBEAFE" font-size="15" font-weight="600">A new perspective on your workbook</text>
+    <rect x="735" y="151" width="148" height="52" rx="9" fill="#1D3557"/>
+    <path d="M749 166H864M749 177H822M749 188H849" stroke="#93C5FD" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+    <rect x="897" y="151" width="198" height="52" rx="9" fill="#1D3557"/>
+    <path d="M911 190L948 173L982 180L1019 165L1052 171L1081 157" stroke="#38BDF8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M737 311H1094M737 275H1094M737 239H1094" stroke="#294463"/>
+    <rect x="754" y="269" width="36" height="42" rx="5" fill="#60A5FA"/>
+    <rect x="811" y="251" width="36" height="60" rx="5" fill="#38BDF8"/>
+    <rect x="868" y="221" width="36" height="90" rx="5" fill="#2563EB"/>
+    <rect x="925" y="257" width="36" height="54" rx="5" fill="#60A5FA"/>
+    <rect x="982" y="237" width="36" height="74" rx="5" fill="#38BDF8"/>
+    <rect x="1039" y="214" width="36" height="97" rx="5" fill="#2563EB"/>
+    <text x="914" y="337" fill="#93A9C7" font-size="11" text-anchor="middle" letter-spacing="1.4">ILLUSTRATIVE WORKBOOK OVERVIEW</text>
+    <rect x="657" y="188" width="75" height="97" rx="12" fill="white" stroke="#BFDBFE"/>
+    <rect x="671" y="203" width="47" height="14" rx="4" fill="#DBEAFE"/>
+    <path d="M671 230H718M671 242H718M671 254H718M687 230V265M702 230V265" stroke="#93C5FD" stroke-width="2"/>
+  </g>
+</svg>

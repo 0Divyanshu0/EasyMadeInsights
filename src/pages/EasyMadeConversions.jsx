@@ -88,7 +88,7 @@ export default function EasyMadeConversions() {
       <div className="conversions-page">
         <div className="conversions-header">
           <button className="back-button" onClick={() => navigate("/")}>
-            Back to Dashboard
+            Back to EasyMadeInsights
           </button>
           <h1>EasyMadeConversions</h1>
           <p>Powerful tools for file conversion and development</p>
@@ -138,11 +138,12 @@ export default function EasyMadeConversions() {
           </div>
         )}
 
-        <ToolModal
+        {isModalOpen && <ToolModal
+          key={selectedTool.id}
           tool={selectedTool}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-        />
+        />}
       </div>
     </>
   );
