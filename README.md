@@ -1,62 +1,94 @@
 # EasyMadeInsights
 
-EasyMadeInsights is a browser-based spreadsheet dashboard with an accompanying
-utility workspace, **EasyMadeConversions**. Users can inspect tabular data,
-choose reporting dimensions and chart styles, and access document, image,
-text-comparison, and JWT tools.
+![EasyMadeInsights: from spreadsheets to a clearer next step](docs/assets/readme-hero.svg)
 
-This documentation describes the current implementation, not planned features.
-Workbook takeaways run locally and follow the selected metric and grouping.
-An optional experimental AI API remains in the backend, but the dashboard does
-not call it and has no API-key requirement.
+**Your workbook, a clearer story. Your files, less friction.**
 
-## Documentation
+A browser-first spreadsheet dashboard paired with **EasyMadeConversions**:
+two focused workspaces for exploring data and getting everyday file tasks done.
 
-| Guide | Contents |
+[![Production pipeline](https://github.com/0Divyanshu0/EasyMadeInsights/actions/workflows/prod.yml/badge.svg?branch=prod)](https://github.com/0Divyanshu0/EasyMadeInsights/actions/workflows/prod.yml)
+![React 18](https://img.shields.io/badge/React-18-2563eb?style=flat-square)
+![Vite 7](https://img.shields.io/badge/Vite-7-0ea5e9?style=flat-square)
+![Python conversions](https://img.shields.io/badge/Conversions-Python-0f172a?style=flat-square)
+![Firebase Hosting](https://img.shields.io/badge/Hosting-Firebase-f59e0b?style=flat-square)
+
+[Open the frontend](https://easymadeinsights.web.app) /
+[Try the demo workbook](public/easy-made-insights-demo.xlsx) /
+[Quick start](#quick-start) /
+[Documentation](#documentation)
+
+> **No AI key required.** Workbook analytics, image editing, text comparison,
+> and JWT decoding run in your browser. PDF/Word conversion needs a separately
+> running backend; Firebase Hosting serves the frontend only.
+
+## Product Tour
+
+| Explore your workbook | Simplify your files |
 | --- | --- |
-| [User Guide](docs/USER_GUIDE.md) | Uploads, dashboard controls, all five tools, limits, and interpreting results |
-| [Architecture](docs/ARCHITECTURE.md) | Source map, runtime boundaries, state, and processing flows |
-| [Development](docs/DEVELOPMENT.md) | Installation, configuration, commands, tests, troubleshooting, and contribution workflow |
-| [API Reference](docs/API.md) | Health, document conversion, experimental AI, and error contracts |
-| [Deployment](docs/DEPLOYMENT.md) | Firebase Hosting, separate conversion backend, security, and release checks |
-| [Production Pipeline](docs/CI_CD.md) | prod branch, quality/test/build gates, GitHub credentials, and automated Hosting release |
+| ![Illustrative workbook workspace with configurable charts and local takeaways](docs/assets/workbook-preview.svg) | ![Illustrative conversion workspace with document previews and image editing](docs/assets/conversion-preview.svg) |
+| **EasyMadeInsights** turns tabular data into configurable KPIs, charts, searchable sheet previews, and local workbook takeaways. | **EasyMadeConversions** brings PDF/Word conversion, a photo studio, text comparison, and JWT inspection into one focused workspace. |
 
-## Current Capabilities
+*These graphics are illustrative placeholders, not application screenshots or
+a promise of exact document-conversion fidelity.*
 
-| Capability | Status | Processing location |
+### Built Around Your Workflow
+
+| Start with a file | Ask a better question | Check the detail |
 | --- | --- | --- |
-| Excel, CSV, TSV, and JSON upload | Implemented | Browser |
-| Sheet selection, KPI cards, and cleaned-data preview | Implemented | Browser |
-| Metric, breakdown, trend, and comparison controls | Implemented | Browser |
-| Bar, line, area, column, and donut views | Implemented | Browser |
-| Selected-metric workbook takeaways | Implemented; full cleaned-data totals, leading groups, review prompts; not AI-generated | Browser |
-| Expanded previews | Searchable, paginated full-sheet modal; fit/full-size document and image modals | Browser |
-| Light/dark theme and branded welcome overlays | Implemented | Browser; theme saved locally |
-| PDF to editable DOCX, including English scan OCR | Requires backend/Python and OCR language data for scans | Server |
-| DOC/DOCX to PDF | Requires conversion backend; legacy DOC needs a suitable office engine | Server |
-| Photo studio: visual crop, flips, tones, undo/redo, PNG/JPG/WebP/ICO export | Implemented | Browser |
-| Text/file comparison | Implemented for supported text formats | Browser |
-| JWT header/payload decoding | Implemented; no signature verification | Browser |
-| Experimental AI endpoint | Backend only; no dashboard integration | Optional server/provider |
-| Accounts, cloud saves, saved report presets, and report export | Not implemented | Not applicable |
+| Upload Excel, CSV, TSV, or JSON and choose a worksheet. | Switch metrics, grouping, trend dimensions, and chart styles. | Expand the preview, search cleaned rows, and read selected-metric takeaways. |
+
+**The small details matter:** light/dark themes, independent workspaces,
+confirmation before switching, keyboard-aware preview modals, and image
+previews that use the actual encoded export.
+
+<details>
+<summary><strong>Explore the complete feature set</strong></summary>
+
+| Capability | Available today | Processing |
+| --- | --- | --- |
+| Workbook upload | Excel, CSV, TSV, and JSON; worksheet selection | Browser |
+| Reporting controls | Metric, breakdown, trend, comparison, and chart styles | Browser |
+| Visualizations | Bar, line, area, column, and donut views | Browser |
+| Workbook takeaways | Full cleaned-row totals, averages, ranges, leading groups, and review prompts; not AI-generated | Browser |
+| Expanded worksheet preview | All columns, search, wrapping cells, and pagination | Browser |
+| Document previews | Inline/expanded PDF and DOCX; fit/full-size DOCX pages independent of the app theme | Browser |
+| PDF to editable Word | Native text/tables and English scan OCR; requires Python and OCR data for scans | Server |
+| Word to PDF | DOCX text/table fallback; Office/LibreOffice for better layout fidelity and legacy DOC | Server |
+| Image Converter Studio | Drag/drop, visual crop, resize, rotate, flips, tone controls, undo/redo, PNG/JPG/WebP/ICO | Browser |
+| Text/file comparison | Bounded diffs for supported text formats | Browser |
+| JWT decoder | Header/payload inspection; does not verify signatures | Browser |
+
+**Not shipped:** accounts, cloud workbook storage, saved report presets, and
+report export. An experimental AI endpoint exists in the backend but is not
+connected to the dashboard. No AI summary is advertised as an available feature.
+
+</details>
 
 ## Quick Start
 
-Run commands from this `client` directory. Install Node.js compatible with
-Vite 7 (Node 20.19+ or 22.12+); see the [Vite 7 announcement](https://vite.dev/blog/announcing-vite7)
-for its runtime requirements.
+Run these commands from the **`client` directory**, which is also the Git
+repository root. Use Node.js 24, the version configured in CI.
 
 ```powershell
 npm.cmd ci
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173/`. The same command starts Express on
-`http://localhost:8787`. On macOS/Linux, use `npm` instead of `npm.cmd`.
-No API key is needed for the dashboard or conversion tools.
+| Workspace | Local address |
+| --- | --- |
+| EasyMadeInsights | `http://localhost:5173/` |
+| EasyMadeConversions | `http://localhost:5173/conversions` |
+| Express API | `http://localhost:8787` |
 
-Document conversion additionally needs Python and its dependencies. Python
-3.12 is the locally verified version for the pinned requirements:
+On macOS/Linux, use `npm` instead of `npm.cmd`. The development command starts
+the UI and API together. The dashboard and browser tools do not require Python.
+
+<details>
+<summary><strong>Enable PDF/Word conversion and English OCR</strong></summary>
+
+Python 3.12 is the verified version for the pinned conversion dependencies.
+On Windows, run:
 
 ```powershell
 python -m venv .venv
@@ -64,98 +96,121 @@ python -m venv .venv
 .\.venv\Scripts\python.exe python\setup_ocr.py
 ```
 
-OCR setup installs a checksum-verified official English Tesseract model into
-ignored `.ocr/tessdata/`. Provision it on each backend; no paid AI key or
-external document upload is needed for OCR.
-The backend automatically looks for this virtual environment. Activation is
-not required. Office/LibreOffice engines improve Word-to-PDF layout fidelity;
-the Python fallback provides a simpler text-and-table rendering. See
-[Development](docs/DEVELOPMENT.md) for cross-platform setup and prerequisites.
+The API finds this local environment automatically; activation is not required.
+OCR setup installs a checksum-verified English Tesseract model into ignored
+`.ocr/tessdata/`. Provision it on each backend; OCR does not use a paid AI
+provider or external document service.
 
-A demonstration workbook is available at
-[public/easy-made-insights-demo.xlsx](public/easy-made-insights-demo.xlsx),
-served locally as `/easy-made-insights-demo.xlsx`. The bundled
-[demo PDF](public/easy-made-insights-demo.pdf) is for the conversion tool,
+Office/LibreOffice improves Word-to-PDF fidelity. Without it, the Python
+fallback renders DOCX text and tables with wrapping and pagination; legacy
+binary DOC still needs an office engine.
+
+See [Development](docs/DEVELOPMENT.md) for Linux/macOS instructions and
+[Deployment](docs/DEPLOYMENT.md) before exposing the API publicly.
+
+</details>
+
+### Try It With Sample Data
+
+Use the bundled [demo workbook](public/easy-made-insights-demo.xlsx) to explore
+the dashboard. It is also served as `/easy-made-insights-demo.xlsx`.
+The [demo PDF](public/easy-made-insights-demo.pdf) is for document conversion,
 not the spreadsheet uploader.
 
-## Technology
+## Documentation
 
-| Layer | Technologies and responsibility |
+| Using and understanding the app | Building and shipping it |
 | --- | --- |
-| UI | React 18, React Router 7, custom CSS, browser APIs |
-| Analytics | SheetJS `xlsx`, application-specific cleaning and aggregation, Recharts 3 |
+| **[User Guide](docs/USER_GUIDE.md)**<br />Dashboard controls, all five tools, limits, and interpreting results. | **[Development](docs/DEVELOPMENT.md)**<br />Setup, configuration, tests, troubleshooting, and contributions. |
+| **[Architecture](docs/ARCHITECTURE.md)**<br />Components, data flow, state, and runtime boundaries. | **[Deployment](docs/DEPLOYMENT.md)**<br />Firebase Hosting, the separate backend, and production safeguards. |
+| **[API Reference](docs/API.md)**<br />Health, document conversion, experimental AI, and error contracts. | **[Production Pipeline](docs/CI_CD.md)**<br />The `prod` branch, quality gates, credentials, and automated releases. |
+
+## Release Flow
+
+```mermaid
+flowchart LR
+    Prod["Merge or push to prod"] --> Quality["Quality checks"]
+    Quality --> Tests["Browser + Python tests"]
+    Tests --> Build["Production build"]
+    Build --> Smoke["Artifact smoke tests"]
+    Smoke --> Hosting["Firebase Hosting"]
+```
+
+Pull requests into `prod` run checks without deploying. Successful pushes to
+`prod` can publish the tested frontend artifact to Firebase's live channel.
+GitHub's `prod` environment needs deployment credentials and any configured
+approval. The API/Python backend is **not** part of this Hosting deployment.
+
+[See the release setup and branch-protection checklist](docs/CI_CD.md).
+
+<details>
+<summary><strong>Technology and useful commands</strong></summary>
+
+| Layer | Technologies |
+| --- | --- |
+| Interface | React 18, React Router 7, custom CSS, browser APIs |
+| Analytics | SheetJS `xlsx`, workbook cleaning/aggregation, Recharts 3 |
 | API | Node.js ES modules, Express 5, Multer, CORS, dotenv |
-| Document processing | PyMuPDF native text/Tesseract OCR, pdfplumber tables, python-docx, docx2pdf, ReportLab; optional LibreOffice for Word-to-PDF |
-| DOCX preview | `docx-preview`; PDF preview uses the browser's native viewer |
-| Experimental AI | OpenAI SDK and Chat Completions; dashboard integration is inactive |
-| Development | Vite 7, concurrently, ESLint, Playwright |
-| Static hosting | Firebase Hosting; no Firebase database/authentication SDK |
+| Documents | PyMuPDF/Tesseract OCR, pdfplumber, python-docx, docx2pdf, ReportLab; optional LibreOffice |
+| Previews | `docx-preview` and the browser's native PDF viewer |
+| Development | Vite 7, concurrently, ESLint, Playwright, Python unittest |
+| Hosting | Firebase Hosting; no Firebase database/authentication SDK |
+| Experimental AI | OpenAI SDK; backend endpoint only, no dashboard integration |
 
 [package.json](package.json), [package-lock.json](package-lock.json), and
 [python/requirements.txt](python/requirements.txt) are the dependency sources
-of truth. The React 19 type packages do not change the React 18 runtime.
-Some declared document packages are used by tests or retained from earlier
-implementation paths; see the architecture guide.
-
-## Commands
+of truth. React 19 type packages do not change the React 18 runtime. Some
+document packages generate test fixtures or remain from earlier implementation
+paths; see the architecture guide.
 
 | Command, from `client` | Purpose |
 | --- | --- |
-| `npm.cmd run dev` | Start frontend and API together |
-| `npm.cmd run dev:ui` | Start only Vite |
-| `npm.cmd run dev:api` | Start only Express |
-| `npm.cmd run lint` | Lint configured JavaScript/JSX sources |
-| `npm.cmd run check:syntax` | Check backend/config/test/helper ES module syntax |
-| `npm.cmd run check:docs` | Validate documentation links, examples, and command references |
+| `npm.cmd run dev` | Start frontend and API |
+| `npm.cmd run dev:ui` / `npm.cmd run dev:api` | Start either service independently |
+| `npm.cmd run lint` | Lint configured JavaScript/JSX |
+| `npm.cmd run check:syntax` | Check backend/config/test/helper module syntax |
+| `npm.cmd run check:docs` | Validate documentation links, examples, and commands |
 | `npm.cmd run build` | Generate the frontend in `dist/` |
-| `npm.cmd run preview` | Preview the build; does not start or proxy the API |
-| `npm.cmd run test:tools` | Run the conversion/utility browser regression suite |
-| `npm.cmd run test:smoke` | Test the built dashboard, routes, and assets after building |
+| `npm.cmd run preview` | Preview the build; does not start/proxy the API |
+| `npm.cmd run test:tools` | Run browser regressions and real document conversions |
+| `npm.cmd run test:smoke` | Test the built dashboard, routes, and assets |
 
-The parent workspace's `package.json` forwards `dev`, `lint`, `build`,
-and `preview` to `client`. Dependencies must still be installed in
-`client`. For tests from the parent directory, use
+The parent workspace's package forwards `dev`, `lint`, `build`, and `preview`.
+Install dependencies in `client`; from the parent, run browser tests with
 `npm.cmd --prefix client run test:tools`.
 
-## Data and Interpretation
+</details>
 
-Uploaded workbooks remain in browser memory in the current dashboard flow.
-They are not stored in a database or automatically sent to the AI endpoint.
-Image conversion, text comparison, and JWT decoding also run locally.
-Document conversion uploads the selected document to Express for temporary
-server-side processing.
+<details>
+<summary><strong>Data privacy, interpretation, and production boundaries</strong></summary>
 
-Automatic cleaning removes duplicate rows and fills missing values. Results
-therefore describe the **cleaned dataset**, not a lossless audit of the source.
-Charts show bounded subsets, currency-like names use USD formatting, and type
-detection is heuristic. Review the [User Guide](docs/USER_GUIDE.md) before using
-results for decisions.
+Workbooks, images, text comparison, and JWT decoding stay in the browser in
+their current flows. Document conversion uploads the selected document to
+Express for temporary server-side processing. Workbook data is not
+automatically sent to the experimental AI endpoint.
 
-Workbook state is not persisted. Refreshing, closing the tab, resetting, or
-confirming a workspace switch loses the loaded dashboard session. Internal
-switches between Insights and Conversions, including browser Back/Forward,
-require confirmation; cancelling retains the current session. Conversions
-shows only a return link, not spreadsheet section navigation. A separate
-browser leave-page warning is registered while a workbook is loaded; its
-wording/display are controlled by the browser. These are routes on one site,
-not independently hosted subdomains.
+Cleaning removes duplicate rows and fills missing values. Results describe
+the **cleaned dataset**, not a lossless audit. Charts use bounded subsets,
+currency-like names use USD formatting, and type detection is heuristic.
+Reconcile important totals with the source workbook.
 
-## Deployment and Readiness
+Sessions are not saved: refresh, tab closure, reset, or a confirmed workspace
+switch clears the current data. Internal workspace switching, including browser
+Back/Forward, asks for confirmation; cancel retains the session. Browsers
+control the separate leave-page warning's display and wording.
 
-[firebase.json](firebase.json) deploys only `dist/` and rewrites unknown paths
-to the SPA. It does **not** deploy `server.mjs`, Python, or an API proxy.
-Document conversion requires a separately provisioned backend and either
-`VITE_API_BASE_URL` at build time or an API rewrite before the SPA fallback.
+[firebase.json](firebase.json) serves `dist/` with an SPA fallback. It does not
+deploy Express, Python, or an API proxy. Document tools need a separately
+provisioned backend and a build-time `VITE_API_BASE_URL` or an API rewrite
+before the SPA fallback.
 
-The backend currently has no authentication, rate limiting, concurrency queue,
-or production-ready isolation of conversion processes. Health checks do not
-verify conversion engines. Public API deployment needs additional safeguards
-described in [Deployment](docs/DEPLOYMENT.md).
+The API currently lacks authentication, rate limiting, a concurrency queue,
+and production-grade process isolation. Health checks do not verify conversion
+engines. See [Deployment](docs/DEPLOYMENT.md) for safeguards.
 
-The Playwright suites cover tools, real PDF/DOCX conversions, and built-dashboard
-smoke checks. Deeper analytics, accessibility, and hosted production checks still
-need additional coverage. The [production pipeline](docs/CI_CD.md) validates PRs
-into `prod` and deploys successful prod pushes to Firebase Hosting after all
-gates. GitHub credentials/environment/branch protection must be configured before
-use. There is no Docker deployment, Firebase Functions implementation, or license
-file in this checkout.
+Automated tests cover browser tools, real PDF/DOCX conversion, and built-site
+smoke checks. Analytics depth, accessibility, and hosted production behavior
+still need additional coverage. This checkout has no Docker deployment,
+Firebase Functions implementation, or license file.
+
+</details>
