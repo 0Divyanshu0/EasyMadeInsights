@@ -220,6 +220,12 @@ path cannot parse legacy binary DOC. The Express route also attempts bare
 `soffice` after Python fails; this is a best-effort fallback, not guaranteed
 support for every format pair.
 
+The text/table fallback accepts DOCX files without a default paragraph style
+or style name, using BodyText instead of assuming that a Normal style exists.
+Fallback exceptions retain their original diagnostic and exception cause.
+Python regression tests disable both Office engines to verify this path on
+every platform, independently of installed desktop conversion software.
+
 On success the API reads the result into memory, attempts input/output deletion,
 and returns a binary attachment. On caught failures it attempts cleanup and
 returns JSON. Cleanup is best effort, not a guaranteed retention policy.

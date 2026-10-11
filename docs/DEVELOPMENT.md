@@ -140,7 +140,7 @@ worker; the UI server can be reused, but the API is expected to be started by
 the suite. Keep these ports available. Real-conversion tests explicitly route
 requests to the test API instead of depending on the normal :8787 proxy.
 
-The browser tool suite has 18 tests covering JWT Unicode and reset/copy behavior,
+The browser tool suite has 33 tests covering JWT Unicode and reset/copy behavior,
 text diff and size guards, image rotation/crop/ICO/JPEG output, document
 validation/error/stale-result behavior, modal keyboard/focus/metadata lifecycle,
 native/scanned PDF-to-DOCX and DOCX-to-PDF content, visual cropping/history,
@@ -149,8 +149,12 @@ document/sheet previews, guarded workspace switching (including browser Back),
 local takeaways following reporting selections, and preview/
 download byte equality across image formats. Python dependencies and OCR data
 are required for the real scanned-PDF test.
-Six Python tests separately verify native/scanned/mixed/forced-OCR,
-missing-model rejection, and editable-table behavior.
+Twelve Python tests separately verify native/scanned/mixed/forced-OCR,
+missing-model rejection, editable tables, and the Word-to-PDF text/table
+fallback with Office and LibreOffice disabled. Fallback checks cover missing
+or unnamed paragraph styles, pagination, literal markup, and error diagnostics.
+They run even on Windows so an installed Word application cannot mask failures
+that would otherwise appear only on the Linux CI runner.
 
 Useful focused runs:
 

@@ -236,7 +236,8 @@ def convert_word_to_pdf(input_path: str, output_path: str) -> None:
             if element.tag.endswith("}p"):
                 paragraph = WordParagraph(element, doc)
                 if paragraph.text.strip():
-                    name = paragraph.style.name
+                    # Some DOCX generators omit the default style or its name.
+                    name = getattr(paragraph.style, "name", "") or ""
                     style = styles["Heading1"] if name.startswith("Heading") else styles["BodyText"]
                     story.append(Paragraph(escape(paragraph.text).replace("\n", "<br/>"), style))
                 story.append(Spacer(1, 8))
@@ -255,13 +256,12 @@ def convert_word_to_pdf(input_path: str, output_path: str) -> None:
             raise RuntimeError("No text or tables could be extracted from this document.")
         SimpleDocTemplate(output_path, pagesize=letter).build(story)
         return
-    except Exception:
-        pass
-
-    raise RuntimeError(
-        "Unable to convert Word to PDF. Install Microsoft Word (for docx2pdf), "
-        "LibreOffice (soffice headless), or ensure python-docx and reportlab are installed."
-    )
+    except Exception as error:
+        raise RuntimeError(
+            "Unable to convert Word to PDF. Install Microsoft Word (for docx2pdf), "
+            "LibreOffice (soffice headless), or ensure python-docx and reportlab are installed. "
+            f"Text/table fallback failed ({type(error).__name__}): {error}"
+        ) from error
 
 
 def main() -> int:
