@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import PreviewModal from "../PreviewModal";
 import DocxPreview from "./DocxPreview";
+import FilePicker from "./FilePicker";
 import { downloadBlob, requestConversion } from "../../utils/conversion.js";
 
 export default function DocumentConverter({ mode }) {
@@ -58,9 +59,13 @@ export default function DocumentConverter({ mode }) {
   };
   return (
     <div className={`tool-content ${toWord ? "pdf-to-word" : "word-to-pdf"}`} aria-busy={busy}>
+      <ol className="tool-steps" aria-label="Conversion steps">
+        {["Select a document", "Convert", "Review & download"].map((step, index) => <li key={step}
+          aria-current={index === (result ? 2 : file ? 1 : 0) ? "step" : undefined}><span>{index + 1}</span>{step}</li>)}
+      </ol>
       <div className="upload-section">
-        <label htmlFor="document-input" className="file-label">Select {toWord ? "PDF" : "Word"} file</label>
-        <input id="document-input" type="file" accept={toWord ? ".pdf" : ".doc,.docx"} onChange={selectFile} className="file-input" />
+        <FilePicker id="document-input" label={`Select ${toWord ? "PDF" : "Word"} file`} accept={toWord ? ".pdf" : ".doc,.docx"} onChange={selectFile} />
+        <p className="tool-input-hint">{toWord ? "PDF" : "DOC or DOCX"} / Up to 50 MB. Conversion uploads this document to the server.</p>
         {file && <p className="file-name">Selected: {file.name}</p>}
       </div>
       {error && <div className="error-message" role="alert">{error}</div>}
@@ -104,7 +109,7 @@ export default function DocumentConverter({ mode }) {
         <button className="convert-btn" disabled={!file || busy} onClick={convert}>{busy ? "Converting..." : `Convert to ${toWord ? "Word" : "PDF"}`}</button>
         {result && <button className="convert-btn" onClick={() => downloadBlob(result, file.name.replace(/\.(pdf|docx?)$/i, toWord ? ".docx" : ".pdf"))}>Download {toWord ? "Word" : "PDF"} file</button>}
       </div>
-      {expanded && <PreviewModal {...expanded} onClose={() => setExpanded(null)}
+      {expanded && <PreviewModal {...expanded} onClose={() => setExpanded(null)} backLabel="Back to converter"
         onDownload={expanded.blob === result ? () => downloadBlob(result, file.name.replace(/\.(pdf|docx?)$/i, toWord ? ".docx" : ".pdf")) : undefined} />}
       <div className="info-box">Documents up to 50 MB are sent to the conversion service. {toWord ? "Text and tables become editable Word content, not page screenshots. English scans use OCR when its language model is installed. Review recognized text: scan quality, columns, and layout can affect accuracy. Photos remain images. Maximum 100 pages." : "Complex layouts may change; Word or LibreOffice provides the best layout fidelity."}</div>
     </div>

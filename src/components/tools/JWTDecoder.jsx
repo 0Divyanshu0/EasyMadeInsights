@@ -26,6 +26,7 @@ export default function JWTDecoder() {
 
   return (
     <div className="tool-content jwt-decoder">
+      <p className="tool-input-hint">Tokens can contain credentials. Decoding happens in your browser and does not verify the signature.</p>
       <div className="input-section">
         <label htmlFor="jwt-token">Paste your JWT token:</label>
         <textarea
@@ -35,9 +36,14 @@ export default function JWTDecoder() {
           placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
           className="token-input"
         />
+        <div className="tool-actions">
+        <button type="button" className="tool-secondary-button" disabled={!token && !decoded && !error} onClick={() => {
+          setToken(""); setDecoded(null); setError(""); setMessage("");
+        }}>Clear token</button>
         <button className="decode-btn" onClick={decodeJWT}>
           Decode
         </button>
+        </div>
       </div>
 
       {error && <div className="error-message" role="alert">{error}</div>}

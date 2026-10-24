@@ -32,7 +32,7 @@ flowchart LR
 | Stage / GitHub check | Required work |
 | --- | --- |
 | Quality Checks | Locked Node install, ESLint, ES-module syntax, documentation links/examples/commands, Python syntax |
-| Tool Regression Tests | Python dependencies and verified OCR data, 12 Python conversion tests (PDF editability and Word-to-PDF with Office engines disabled), Chromium, all 33 browser regression tests including scans, image-preview equality, and document contrast/sizing in both themes |
+| Tool Regression Tests | Python dependencies and verified OCR data, 12 Python conversion tests (PDF editability and Word-to-PDF with Office engines disabled), Chromium, all 73 browser regression tests including numeric-readiness advisories and unchanged analytics, crop mode exits and interrupted gestures, tool/preview back actions, crop alignment/transparency, keyboard/mobile usability, scans, image-preview equality, and document contrast/sizing in both themes |
 | Production Build | Vite production build; upload immutable `dist/` artifact for the run's SHA |
 | Release Checks | Download that artifact and run two browser smoke tests against Vite preview, not the dev server |
 | Deploy Production | Require all prior jobs, prod ref, environment controls, latest revision, valid credentials, then deploy the same artifact to Firebase's live channel |

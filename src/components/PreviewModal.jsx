@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Dialog from "./Dialog";
 import DocxPreview from "./tools/DocxPreview";
 
-export default function PreviewModal({ title, type, blob, url, width, height, onClose, onDownload }) {
+export default function PreviewModal({ title, type, blob, url, width, height, onClose, onDownload, backLabel = "Back to tool" }) {
   const [fit, setFit] = useState(true);
   const pdfRef = useRef(null);
   useEffect(() => {
@@ -11,7 +11,7 @@ export default function PreviewModal({ title, type, blob, url, width, height, on
     pdfRef.current.src = `${objectUrl}#view=FitH`;
     return () => { if (!url) URL.revokeObjectURL(objectUrl); };
   }, [blob, url, type]);
-  return <Dialog title={title} onClose={onClose} className="expanded-preview">
+  return <Dialog title={title} onClose={onClose} className="expanded-preview" backLabel={backLabel}>
     <div className="preview-toolbar">
       {type !== "pdf" && <div role="group" aria-label="Expanded preview zoom">
         <button aria-pressed={fit} onClick={() => setFit(true)}>Fit to window</button>

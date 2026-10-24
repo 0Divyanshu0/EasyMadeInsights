@@ -140,7 +140,7 @@ worker; the UI server can be reused, but the API is expected to be started by
 the suite. Keep these ports available. Real-conversion tests explicitly route
 requests to the test API instead of depending on the normal :8787 proxy.
 
-The browser tool suite has 33 tests covering JWT Unicode and reset/copy behavior,
+The browser regression suite has 73 tests covering JWT Unicode and reset/copy behavior,
 text diff and size guards, image rotation/crop/ICO/JPEG output, document
 validation/error/stale-result behavior, modal keyboard/focus/metadata lifecycle,
 native/scanned PDF-to-DOCX and DOCX-to-PDF content, visual cropping/history,
@@ -149,6 +149,20 @@ document/sheet previews, guarded workspace switching (including browser Back),
 local takeaways following reporting selections, and preview/
 download byte equality across image formats. Python dependencies and OCR data
 are required for the real scanned-PDF test.
+Workbook readiness regressions cover text-only, identifier/date-only, sparse,
+currency/percentage, and useful mixed-content sheets, boundary thresholds,
+non-mutation and unchanged analytics, per-sheet dismissal/reset, and mobile dark
+mode. Run just these checks with
+`npm.cmd run test:tools -- tests/browser/workbook-readiness.spec.mjs`.
+UI regressions also verify transparent, aligned crop overlays on portrait and
+landscape images at desktop/mobile widths, drawing inside a full selection,
+larger handles, guide visibility, crop reset/history, keyboard file pickers,
+mobile comparison readability, and clear actions.
+Tool-navigation checks additionally cover mode changes after cropping, repeat
+entry/back buttons, unfinished-drag Escape and lost capture, short-screen
+layouts, transparent crop hit targets, every catalogue tool's return action,
+and nested preview back actions preserving inputs/focus. Run these with
+`npm.cmd run test:tools -- tests/browser/tool-navigation.spec.mjs`.
 Twelve Python tests separately verify native/scanned/mixed/forced-OCR,
 missing-model rejection, editable tables, and the Word-to-PDF text/table
 fallback with Office and LibreOffice disabled. Fallback checks cover missing

@@ -10,7 +10,7 @@ export default function SheetPreview({ sheet, onClose }) {
   const rows = search ? sheet.rows.filter((row) => sheet.columns.some((column) => String(row[column] ?? "").toLowerCase().includes(search))) : sheet.rows;
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
-  return <Dialog title={`${sheet.name} | Full sheet preview`} onClose={onClose} className="expanded-preview">
+  return <Dialog title={`${sheet.name} | Full sheet preview`} onClose={onClose} className="expanded-preview" backLabel="Back to dashboard">
     <div className="preview-toolbar">
       <label>Search rows <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} /></label>
       <span>{rows.length.toLocaleString()} matching rows | {sheet.columns.length} columns</span>

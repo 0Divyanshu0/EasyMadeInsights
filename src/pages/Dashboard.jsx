@@ -18,6 +18,8 @@ import {
 } from "recharts";
 import WorkbookTakeaways from "../components/WorkbookTakeaways";
 import SheetPreview from "../components/SheetPreview";
+import NumericReadinessNotice from "../components/NumericReadinessNotice";
+import { assessNumericReadiness } from "../utils/numericReadiness.js";
 import ChartCard from "../components/ChartCard.jsx";
 import FileUpload from "../components/FileUpload.jsx";
 import KPI from "../components/KPI.jsx";
@@ -180,6 +182,7 @@ export default function Dashboard({ onSectionChange, onSessionChange }) {
   const [messageType, setMessageType] = useState("");
   const [loading, setLoading] = useState(false);
   const [workbookData, setWorkbookData] = useState(null);
+  const [dismissedReadinessSheets, setDismissedReadinessSheets] = useState(() => new Set());
   const [selectedSheet, setSelectedSheet] = useState("");
   const [selectedMetric, setSelectedMetric] = useState("");
   const [selectedBreakdown, setSelectedBreakdown] = useState("");
@@ -395,9 +398,10 @@ export default function Dashboard({ onSectionChange, onSessionChange }) {
             raw: true,
           });
 
+          const numericReadiness = assessNumericReadiness(rows);
           const cleanedRows = cleanRows(rows);
 
-          return [sheetName, analyzeSheet(sheetName, cleanedRows)];
+          return [sheetName, { ...analyzeSheet(sheetName, cleanedRows), numericReadiness }];
         })
       );
 
@@ -405,6 +409,7 @@ export default function Dashboard({ onSectionChange, onSessionChange }) {
       const summary = buildWorkbookSummary(sheets);
 
       setSelectedFile(file);
+      setDismissedReadinessSheets(new Set());
       setWorkbookData({
         sheets,
         sheetNames: workbook.SheetNames,
@@ -430,6 +435,7 @@ export default function Dashboard({ onSectionChange, onSessionChange }) {
   };
 
   const resetDashboard = () => {
+    setDismissedReadinessSheets(new Set());
     setSelectedFile(null);
     setMessage(null);
     setMessageType("");
@@ -495,6 +501,10 @@ export default function Dashboard({ onSectionChange, onSessionChange }) {
           onSelect={setSelectedSheet}
         />
       )}
+
+      {activeSheet && !dismissedReadinessSheets.has(selectedSheet) && <NumericReadinessNotice
+        assessment={activeSheet.numericReadiness} sheetName={selectedSheet}
+        onDismiss={() => setDismissedReadinessSheets((current) => new Set([...current, selectedSheet]))} />}
 
       <section id="overview" ref={overviewRef} className="dashboard-section">
         <div className="section-heading">

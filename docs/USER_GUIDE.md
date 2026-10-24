@@ -42,6 +42,23 @@ to change tabs. Parsing failures show an error and clear the loaded workbook.
 There is no explicit workbook size cap; large files can exhaust browser memory
 or make the page unresponsive. Start with small, structured datasets.
 
+### Limited Numeric Insights Warning
+
+A dismissible **Limited numeric insights** notice appears when the active sheet
+is mostly descriptive, contains only apparent identifiers/date fields, or has
+sparse/inconsistent numeric values. The check considers column names and
+original cell values before cleaning fills missing cells.
+
+Your file is still imported normally: previews, reporting controls, charts, and
+takeaways remain available and their calculations are unchanged. A sheet with
+many text columns can still be useful if it includes a consistently populated
+measure such as revenue, quantity, temperature, duration, or score.
+
+Dismiss hides the notice for that worksheet during the current upload. Switching
+sheets shows the relevant notice; replacing the upload or resetting clears these
+dismissals. The check is a heuristic, not a guarantee of data quality or business
+meaning. Always review whether a numeric field is a measurement or just an ID.
+
 ## Dashboard Workflow
 
 1. **Upload:** inspect the selected filename, size, status, and active sheet.
@@ -150,6 +167,16 @@ Tools, Image Tools, or Developer Tools. Choose **Use Tool** to open a modal.
 Escape closes it; Tab stays within it; closing returns focus to the opener.
 Closing and reopening resets that tool's inputs and results.
 
+Every tool header includes **Back to tools**, alongside its close button. This
+returns to the catalogue and ends the tool session. Expanded previews instead
+offer **Back to editor**, **Back to converter**, or **Back to dashboard**; these
+close only the preview and keep the underlying inputs, edits, and results.
+
+File tools use keyboard-accessible picker buttons and show the selected
+filename separately; they do not show a second native picker with a misleading
+"No file chosen" message after selection. Document converters show Select,
+Convert, and Review/download steps to indicate the next action.
+
 Document tools offer **Expand original preview** and, after conversion,
 **Expand converted preview**. The image studio offers **Expand image preview**.
 Popups use the available screen space, with fit-to-window and 100% size options
@@ -210,11 +237,30 @@ Drop one PNG, JPEG, WebP, or BMP, or use the file picker. Inputs are limited
 to 25 MiB and 80 megapixels after decoding. The editor has Transform, Size,
 Color & tone, and Export panels.
 
-Crop image/Crop visually works on the original. Drag outside the selection to
-draw a crop, inside to move, or use corner handles to resize. Choose Freeform,
-1:1, 4:3, 16:9, or 3:4. Focus selection/handles and use arrow keys for pixel
-changes, or Shift+arrows for ten-pixel changes. Visual cropping sets output
-dimensions to the crop; numeric fields remain available.
+Crop image/Crop visually works on the original. The selection is transparent;
+only the area outside it is shaded. Controls stay in a separate toolbar, not
+over the photo. Choose **Draw new crop** to draw anywhere, including inside a
+full-image selection. Drag the selection to move, or use the larger corner
+handles to resize. **Hide/Show crop guides** controls the grid; **Reset crop**
+restores the full source without clearing tone/rotation edits. **Done cropping**
+returns to the clean encoded export preview; cropping updates immediately,
+not as a separate save operation.
+
+**Back to preview** is above the photo in crop mode. Click it, click the active
+**Crop visually/Crop image** button again, or press Escape within the editor to
+leave cropping without losing completed edits. Escape cancels an unfinished
+drag before returning; losing pointer capture also rolls back that incomplete
+gesture. Changing size, rotation, color/tone, or export settings automatically
+returns to the clean export preview. Small visible grips have larger transparent
+touch targets so they do not hide the photo. Crop guides appear only while
+cropping and are never part of the download.
+
+Choose Freeform, 1:1, 4:3, 16:9, or 3:4. Focus selection/handles and use arrow
+keys for pixel changes, or Shift+arrows for ten-pixel changes. Visual cropping
+sets output dimensions to the crop, scaled down when needed to meet the export
+limits; numeric fields remain available. The crop surface preserves the source
+aspect ratio on portrait/landscape images so pointers and guides stay aligned.
+On phones, Crop visually brings the photo workspace into view.
 
 Crop values must be whole pixels and stay inside the original image. Output
 resize dimensions are at most 8,192 pixels per side and 32,000,000 pixels total.
@@ -251,6 +297,11 @@ Choose **Paste Text** or **Upload Files**, provide two inputs, and click
 modified, added, or removed text; modified pairs include token highlights.
 Changing input invalidates the result until you compare again.
 
+**Clear inputs** removes both versions and their result. Character counters
+show paste limits. On narrow screens each changed line stacks Text 1 and
+Text 2 rather than squeezing them into tiny columns; dark-mode legends use
+readable colors.
+
 Upload mode accepts UTF-8 `.txt`, `.csv`, `.json`, `.md`, and `.log`
 files up to 200,000 bytes each. Paste mode allows 200,000 characters per input.
 An empty side can represent a complete addition/deletion. Switching modes
@@ -268,6 +319,9 @@ Paste a three-part JWT, decode it, and inspect/copy the header or payload.
 Base64URL and UTF-8 JSON are decoded locally; malformed input shows an error.
 Editing the token clears the old result. Clipboard support/permissions depend
 on the browser and secure context.
+
+**Clear token** removes the token, decoded data, and messages. The privacy and
+unverified-signature warning is visible before decoding as well as afterward.
 
 **Decoded does not mean trusted.** The tool does not verify signatures,
 expiration, issuer, audience, or authorization. It is not a login validator,

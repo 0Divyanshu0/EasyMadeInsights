@@ -99,7 +99,7 @@ export default function ToolModal({ tool, isOpen, onClose }) {
     }
   };
 
-  return <Dialog title={tool.name} onClose={onClose} closeLabel="Close tool"
+  return <Dialog title={tool.name} onClose={onClose} closeLabel="Close tool" backLabel="Back to tools"
     className={["image-converter", "jpg-to-png", "png-to-jpg", "png-to-favicon"].includes(tool.id) ? "image-studio-modal" : ""}>
     {renderTool()}
   </Dialog>;

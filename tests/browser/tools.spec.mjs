@@ -280,7 +280,13 @@ test("tool modal closes on Escape and restores focus and title", async ({ page }
   await trigger.click();
   await expect(page.getByRole("button", { name: "Close tool" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("button", { name: "Back to tools", exact: true })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
   await expect(page.getByRole("button", { name: "Decode", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Back to tools", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Close tool" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(trigger).toBeFocused();

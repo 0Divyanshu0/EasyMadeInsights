@@ -41,6 +41,8 @@ a promise of exact document-conversion fidelity.*
 **The small details matter:** light/dark themes, independent workspaces,
 confirmation before switching, keyboard-aware preview modals, and image
 previews that use the actual encoded export.
+Named back actions take you from cropping to preview, from an expanded preview
+to your existing editor, or from any tool back to the catalogue.
 
 <details>
 <summary><strong>Explore the complete feature set</strong></summary>
@@ -48,6 +50,7 @@ previews that use the actual encoded export.
 | Capability | Available today | Processing |
 | --- | --- | --- |
 | Workbook upload | Excel, CSV, TSV, and JSON; worksheet selection | Browser |
+| Numeric-readiness advisory | Dismissible per-sheet warning for text-heavy, identifier-only, or sparse numeric data; imports and calculations stay unchanged | Browser |
 | Reporting controls | Metric, breakdown, trend, comparison, and chart styles | Browser |
 | Visualizations | Bar, line, area, column, and donut views | Browser |
 | Workbook takeaways | Full cleaned-row totals, averages, ranges, leading groups, and review prompts; not AI-generated | Browser |

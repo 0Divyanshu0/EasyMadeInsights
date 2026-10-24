@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import FilePicker from "./FilePicker";
 
 const normalizeText = (text) => text.replace(/\r\n?/g, "\n");
 
@@ -189,6 +190,15 @@ export default function FileComparison() {
     updateInput("", 2);
   };
 
+  const clearInputs = () => {
+    selectionRef.current[1] += 1;
+    selectionRef.current[2] += 1;
+    setFile1(null);
+    setFile2(null);
+    updateInput("", 1);
+    updateInput("", 2);
+  };
+
   const handleFileSelect = async (e, fileNum) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -232,10 +242,12 @@ export default function FileComparison() {
 
   return (
     <div className="tool-content file-comparison">
-      <div className="comparison-mode-toggle">
+      <p className="tool-input-hint">Compare two versions side by side. Text stays in your browser; documents and binary files are not supported.</p>
+      <div className="comparison-mode-toggle" role="group" aria-label="Comparison input mode">
         <button
           type="button"
           className={mode === "paste" ? "active" : ""}
+          aria-pressed={mode === "paste"}
           onClick={() => changeMode("paste")}
         >
           Paste Text
@@ -243,6 +255,7 @@ export default function FileComparison() {
         <button
           type="button"
           className={mode === "upload" ? "active" : ""}
+          aria-pressed={mode === "upload"}
           onClick={() => changeMode("upload")}
         >
           Upload Files
@@ -254,24 +267,12 @@ export default function FileComparison() {
           <div className="comparison-split">
             <div className="comparison-panel">
               <label htmlFor="file1-input">File 1</label>
-              <input
-                id="file1-input"
-                type="file"
-                accept=".txt,.csv,.json,.md,.log"
-                onChange={(e) => handleFileSelect(e, 1)}
-                className="file-input"
-              />
+              <FilePicker id="file1-input" label="Choose first file" inputLabel="File 1" accept=".txt,.csv,.json,.md,.log" onChange={(e) => handleFileSelect(e, 1)} />
               {file1 && <p className="file-name">{file1.name}</p>}
             </div>
             <div className="comparison-panel">
               <label htmlFor="file2-input">File 2</label>
-              <input
-                id="file2-input"
-                type="file"
-                accept=".txt,.csv,.json,.md,.log"
-                onChange={(e) => handleFileSelect(e, 2)}
-                className="file-input"
-              />
+              <FilePicker id="file2-input" label="Choose second file" inputLabel="File 2" accept=".txt,.csv,.json,.md,.log" onChange={(e) => handleFileSelect(e, 2)} />
               {file2 && <p className="file-name">{file2.name}</p>}
             </div>
           </div>
@@ -286,6 +287,7 @@ export default function FileComparison() {
                 onChange={(e) => updateInput(e.target.value, 1)}
                 placeholder="Paste or type text here..."
               />
+              <p className="tool-input-hint">{content1.length.toLocaleString()} / 200,000 characters</p>
             </div>
             <div className="comparison-panel">
               <label htmlFor="comparison-right" className="comparison-panel-header">Text 2</label>
@@ -296,17 +298,19 @@ export default function FileComparison() {
                 onChange={(e) => updateInput(e.target.value, 2)}
                 placeholder="Paste or type text here..."
               />
+              <p className="tool-input-hint">{content2.length.toLocaleString()} / 200,000 characters</p>
             </div>
           </div>
         )}
 
-        <button
+        <div className="tool-actions"><button
           className="compare-btn"
           onClick={handleCompare}
           disabled={mode === "upload" ? !file1 || !file2 : !content1 && !content2}
         >
           Compare Now
         </button>
+        <button type="button" className="tool-secondary-button" onClick={clearInputs} disabled={!content1 && !content2 && !file1 && !file2}>Clear inputs</button></div>
       </div>
 
       {error && <div className="error-message" role="alert">{error}</div>}

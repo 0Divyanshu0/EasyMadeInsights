@@ -14,7 +14,7 @@ function updateLayers() {
   });
 }
 
-export default function Dialog({ title, children, onClose, className = "", closeLabel = "Close preview", role = "dialog" }) {
+export default function Dialog({ title, children, onClose, className = "", closeLabel = "Close preview", backLabel, role = "dialog" }) {
   const titleId = useId();
   const overlayRef = useRef(null);
   const closeRef = useRef(onClose);
@@ -42,7 +42,7 @@ export default function Dialog({ title, children, onClose, className = "", close
     }
     dialogs.push(dialog);
     updateLayers();
-    overlay.querySelector("button")?.focus();
+    overlay.querySelector(".close-btn")?.focus();
     const keydown = (event) => {
       if (dialogs.at(-1) !== dialog) return;
       if (event.key === "Escape") { event.preventDefault(); closeRef.current(); return; }
@@ -72,6 +72,9 @@ export default function Dialog({ title, children, onClose, className = "", close
     }}>
       <div className={`modal-content ${className}`} role={role} aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-header">
+          {backLabel && <button type="button" className="dialog-back" onClick={onClose}>
+            <span aria-hidden="true">&larr;</span> {backLabel}
+          </button>}
           <h2 id={titleId} className="modal-title">{title}</h2>
           <button type="button" className="close-btn" onClick={onClose} aria-label={closeLabel}>&times;</button>
         </div>

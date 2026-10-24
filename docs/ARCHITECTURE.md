@@ -36,6 +36,7 @@ Paths below are relative to `client`.
 | `src/App.jsx` | Data router, workspace navigation blocker, app shell, theme, welcome state, route metadata |
 | `src/pages/Dashboard.jsx` | Upload orchestration, workbook/session state, visual builder, charts, sections |
 | `src/utils/workbook.js` | Cleaning, type heuristics, sheet profiles, default summaries and narratives |
+| `src/utils/numericReadiness.js`, `src/components/NumericReadinessNotice.jsx` | Read-only raw-cell suitability check and dismissible per-sheet numeric-analysis advisory |
 | `src/components/FileUpload.jsx`, `SheetSelector.jsx` | File selection/drop and sheet switching |
 | `src/components/KPI.jsx`, `ChartCard.jsx` | Reusable dashboard presentation |
 | `src/components/WorkbookTakeaways.jsx` | Selected-metric full-row totals, grouped leaders, conditional concentration review prompts; no network requests |
@@ -44,6 +45,7 @@ Paths below are relative to `client`.
 | `src/pages/EasyMadeConversions.jsx` | Tool catalogue, search/category filtering, selected modal |
 | `src/components/ToolModal.jsx` | Tool dispatch, format aliases, dialog lifecycle and metadata |
 | `src/components/tools/DocumentConverter.jsx` | Shared PDF/Word input, preview, request, download, and cancellation state |
+| `src/components/tools/FilePicker.jsx` | Shared semantic picker button and hidden native input; accessible labels and keyboard activation |
 | `src/components/tools/PDFToWord.jsx`, `WordToPDF.jsx` | Mode-specific wrappers |
 | `src/components/tools/DocxPreview.jsx` | Rich DOCX preview with native page dimensions, resize-observed proportional fit, and stale-render protection |
 | `src/utils/conversion.js` | Multipart requests, timeout, binary validation, object-URL download |
@@ -82,6 +84,8 @@ stored under `easy-made-insights-theme` in local storage and applied through
 `document.documentElement.dataset.theme`. The initial theme uses the stored
 choice or system preference. The welcome overlay auto-dismisses after 2.6 seconds
 and can also be dismissed manually; it is not a network-loading indicator.
+Its card is height-bounded and scrollable on short viewports, with a responsive
+graphic so the entry button remains reachable.
 
 `Dashboard` owns the file, parsed sheets, active sheet, selections, chart
 styles, loading indicator, and status messages. Switching sheets keeps valid
@@ -115,6 +119,7 @@ sequenceDiagram
     SheetJS-->>Dashboard: Sheet names and worksheets
     loop Each worksheet
         Dashboard->>SheetJS: sheet_to_json with empty-cell defaults
+        Dashboard->>Dashboard: Assess raw numeric readiness (advisory metadata only)
         Dashboard->>Helpers: cleanRows, then analyzeSheet
         Helpers-->>Dashboard: Cleaned rows, profile, default series and summaries
     end
@@ -131,6 +136,21 @@ parsing, but validates the entire value rather than extracting digits from
 arbitrary labels or dates. Digit-only identifiers still need manual review.
 Default Overview spotlights use the primary measure; selected-builder charts
 and Workbook takeaways follow the user's reporting controls.
+
+`assessNumericReadiness` reads the original rows before `cleanRows` mutates them,
+ignores entirely blank rows, and uses the existing strict numeric parser. It
+warns for empty/text-only sheets, apparent identifier/date/descriptive numeric
+fields without measures, or sparse/inconsistent measurements. A candidate measure
+is considered sufficiently populated when numeric cells cover at least 50% of
+populated rows and 80% of its own populated cells. One such measure is enough
+to avoid the warning, regardless of how many text columns exist.
+
+This diagnostic adds metadata only: it never filters columns or changes existing
+cleaning, type groups, metrics, charts, or takeaways. Header heuristics are
+English-oriented and cannot determine every dataset's business meaning; unknown
+digit-only identifiers can still look like measures. Dashboard keeps dismissals
+per worksheet for the current upload and clears them on replacement/reset. The
+notice uses a polite live region, not a blocking dialog, and makes no API calls.
 
 There are **two reporting paths**: `analyzeSheet` creates default summaries,
 spotlights, and narrative insights; Dashboard builds series for the selected
@@ -182,6 +202,11 @@ height so short viewports do not collapse the preview.
 Dialog portals share a stack: only the top layer traps focus or handles Escape,
 lower layers and the app root are inert, and body scroll is restored only after
 the final dialog closes. Closing a nested preview returns focus to its tool.
+`Dialog` accepts an optional `backLabel`, rendered in the sticky header using
+the same close callback. Tool modals return to the catalogue; nested previews
+return to their existing editor/converter/dashboard without clearing its state.
+The close button remains the initial focus target and header actions wrap above
+the title instead of squeezing it offscreen.
 
 Object URLs are released when replaced or no longer needed. Client cancellation
 does not guarantee the server's child process stops.
@@ -191,6 +216,30 @@ controls, and separate crop/export views. Canvas applies geometry and explicit
 pixel adjustments, composites the background, and encodes once. Export preview
 uses that encoded blob (the PNG payload for ICO). CSS filters and crop overlays
 never change downloaded pixels.
+
+The crop surface is sized from the original aspect ratio and responsive height
+limit, with its image filling the same rectangle. The shade, transparent move
+selection, and larger handles have explicit layering. Generic studio button
+rules exclude crop overlays to prevent control backgrounds from covering the
+image. Draw mode bypasses the selection/handles so a crop can begin inside the
+existing selection; one completed gesture remains one undo step. Crop controls
+are outside the image, and only export mode offers expanded encoded preview.
+Visual crop dimensions are scaled to the existing export safety limits.
+
+The photo workspace stays in normal document flow rather than making a tall
+column sticky inside a scrolling modal. Crop overlays are isolated within the
+canvas; resize controls use small visible grips and larger transparent hit
+targets. Crop entry buttons toggle the mode. Back/Done/Escape return to output,
+restore the entry control's focus, and preserve completed edits. Escape within
+the image editor stops propagation before the outer dialog's close handler.
+An unfinished drag rolls back on exit, pointer cancellation, or lost capture.
+Non-crop edits explicitly leave crop mode without stealing the edited control's
+focus so changes are shown on the actual encoded export, not the original source.
+
+FilePicker delegates trusted button activation to the hidden native file
+input. Consumers still own validation, cancellation, selected filenames, and
+input-value reset. Comparison clear invalidates outstanding file reads; mobile
+results stack both sides. JWT clear removes decoded data and messages locally.
 
 ## Document Conversion Pipeline
 

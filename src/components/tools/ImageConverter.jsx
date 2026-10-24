@@ -1,4 +1,5 @@
 import PreviewModal from "../PreviewModal";
+import FilePicker from "./FilePicker";
 import { useEffect, useRef, useState } from "react";
 import { convertImage, cropFromDrag } from "../../utils/imageConversion.js";
 import { downloadBlob } from "../../utils/conversion.js";
@@ -32,12 +33,14 @@ function Slider({ field, label, value, min, max, step = 1, disabled, onChange })
   </label>;
 }
 
+function resizeForCrop(width, height) {
+  const scale = Math.min(1, 8192 / width, 8192 / height, Math.sqrt(32000000 / (width * height)));
+  return { resizeWidth: Math.max(1, Math.floor(width * scale)), resizeHeight: Math.max(1, Math.floor(height * scale)) };
+}
+
 function defaults(image, format) {
-  const scale = Math.min(1, 8192 / image.naturalWidth, 8192 / image.naturalHeight,
-    Math.sqrt(32000000 / (image.naturalWidth * image.naturalHeight)));
   return { ...INITIAL, outputFormat: format, cropWidth: image.naturalWidth, cropHeight: image.naturalHeight,
-    resizeWidth: Math.max(1, Math.floor(image.naturalWidth * scale)),
-    resizeHeight: Math.max(1, Math.floor(image.naturalHeight * scale)) };
+    ...resizeForCrop(image.naturalWidth, image.naturalHeight) };
 }
 
 export default function ImageConverter({ initialFormat = "png" }) {
@@ -53,7 +56,12 @@ export default function ImageConverter({ initialFormat = "png" }) {
   const [ratio, setRatio] = useState("");
   const [locked, setLocked] = useState(true);
   const [history, setHistory] = useState({ past: [], future: [] });
-  const inputRef = useRef(null);
+  const [drawMode, setDrawMode] = useState(false);
+  const [showGuides, setShowGuides] = useState(true);
+  const workspaceRef = useRef(null);
+  const cropSurfaceRef = useRef(null);
+  const cropBackRef = useRef(null);
+  const cropTriggerRef = useRef(null);
   const gestureRef = useRef(null);
   const selectionRef = useRef(0);
   const fingerprint = JSON.stringify(settings);
@@ -81,12 +89,27 @@ export default function ImageConverter({ initialFormat = "png" }) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [source, settings, fingerprint]);
 
+  const leaveCrop = (restoreFocus = false) => {
+    const gesture = gestureRef.current;
+    if (gesture) {
+      // Only an unfinished drag is discarded; completed edits stay in history.
+      gestureRef.current = null;
+      setSettings(gesture.before);
+      const surface = cropSurfaceRef.current;
+      if (surface?.hasPointerCapture(gesture.pointerId)) surface.releasePointerCapture(gesture.pointerId);
+    }
+    setView("output");
+    setDrawMode(false);
+    if (restoreFocus) requestAnimationFrame(() => cropTriggerRef.current?.focus());
+  };
   const commit = (next) => {
     if (JSON.stringify(next) === fingerprint) return;
     setHistory((current) => ({ past: [...current.past, settings].slice(-40), future: [] }));
     setSettings(next);
   };
+  const edit = (next) => { leaveCrop(); commit(next); };
   const change = (field, value) => {
+    if (!field.startsWith("crop")) leaveCrop();
     const next = { ...settings, [field]: value };
     if (locked && (field === "resizeWidth" || field === "resizeHeight") && Number.isFinite(value) && value > 0) {
       const aspect = settings.cropWidth / settings.cropHeight;
@@ -95,8 +118,24 @@ export default function ImageConverter({ initialFormat = "png" }) {
     }
     commit(next);
   };
-  const cropSettings = (base, crop) => ({ ...base, ...crop,
-    resizeWidth: crop.cropWidth, resizeHeight: crop.cropHeight });
+  const cropSettings = (base, crop) => ({ ...base, ...crop, ...resizeForCrop(crop.cropWidth, crop.cropHeight) });
+  const enterCrop = () => {
+    if (view !== "crop") cropTriggerRef.current = document.activeElement;
+    setView("crop");
+    setDrawMode(false);
+    requestAnimationFrame(() => {
+      cropBackRef.current?.focus({ preventScroll: true });
+      workspaceRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  };
+  const toggleCrop = () => view === "crop" ? leaveCrop(true) : enterCrop();
+  const resetCrop = () => {
+    const fresh = defaults(source.image, settings.outputFormat);
+    commit({ ...settings, cropX: 0, cropY: 0, cropWidth: fresh.cropWidth, cropHeight: fresh.cropHeight,
+      resizeWidth: fresh.resizeWidth, resizeHeight: fresh.resizeHeight });
+    setRatio("");
+    setDrawMode(false);
+  };
   const undo = () => {
     if (!history.past.length) return;
     setSettings(history.past.at(-1));
@@ -116,6 +155,9 @@ export default function ImageConverter({ initialFormat = "png" }) {
     setError("");
     setBusy(true);
     setHistory({ past: [], future: [] });
+    setExpanded(false);
+    setDrawMode(false);
+    setShowGuides(true);
     gestureRef.current = null;
     if (!/^image\/(png|jpeg|webp|bmp)$/.test(file.type) || !file.size || file.size > 25 * 1024 * 1024) {
       setError("Select a PNG, JPEG, WebP, or BMP image no larger than 25 MB.");
@@ -151,7 +193,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
     const crop = { cropX: Math.floor((source.image.naturalWidth - width) / 2),
       cropY: Math.floor((source.image.naturalHeight - height) / 2), cropWidth: width, cropHeight: height };
     commit(cropSettings(settings, crop));
-    setView("crop");
+    enterCrop();
   };
   const pointFor = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -162,7 +204,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
     if (event.button !== 0 || !source || gestureRef.current) return;
     event.preventDefault();
     const point = pointFor(event);
-    const action = event.target.dataset.cropAction || "new";
+    const action = drawMode ? "new" : event.target.dataset.cropAction || "new";
     if (action !== "new") event.target.focus();
     const bounds = settings;
     let anchor = point;
@@ -197,6 +239,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
       setHistory((current) => ({ past: [...current.past, gesture.before].slice(-40), future: [] }));
     }
     gestureRef.current = null;
+    if (!cancel) setDrawMode(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
   const keyboardCrop = (event) => {
@@ -221,13 +264,19 @@ export default function ImageConverter({ initialFormat = "png" }) {
     label={label} minimum={minimum} value={settings[field]} onChange={change} />;
   const extension = settings.outputFormat === "favicon" ? "ico" : settings.outputFormat;
   const cropValid = source && [settings.cropX, settings.cropY, settings.cropWidth, settings.cropHeight].every(Number.isInteger)
-    && settings.cropWidth > 0 && settings.cropHeight > 0;
+    && settings.cropX >= 0 && settings.cropY >= 0 && settings.cropWidth > 0 && settings.cropHeight > 0
+    && settings.cropX + settings.cropWidth <= source.image.naturalWidth && settings.cropY + settings.cropHeight <= source.image.naturalHeight;
   const position = source ? { left: settings.cropX / source.image.naturalWidth * 100 + "%",
     top: settings.cropY / source.image.naturalHeight * 100 + "%",
     width: settings.cropWidth / source.image.naturalWidth * 100 + "%",
     height: settings.cropHeight / source.image.naturalHeight * 100 + "%" } : {};
 
-  return <div className="tool-content image-converter image-studio" aria-busy={busy}>
+  return <div className="tool-content image-converter image-studio" aria-busy={busy}
+    onKeyDown={(event) => {
+      if (event.key === "Escape" && view === "crop") {
+        event.preventDefault(); event.stopPropagation(); leaveCrop(true);
+      }
+    }}>
     <div className="studio-dropzone" data-dragging={dragging}
       onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
@@ -239,8 +288,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
       <div><p className="studio-eyebrow">Your browser. Your creative workspace.</p>
         <h3>{source ? "Make it your own." : "Drop a photo. Find your finish."}</h3>
         <p>Drag &amp; drop PNG, JPG, WebP, or BMP. Up to 25 MB. Nothing is uploaded.</p></div>
-      <label htmlFor="image-input" className="studio-upload-label">Select image file</label>
-      <input ref={inputRef} id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/bmp"
+      <FilePicker id="image-input" label="Select image file" buttonClassName="studio-upload-label" accept="image/png,image/jpeg,image/webp,image/bmp"
         onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; select(file); }} />
     </div>
     {error && <p className="error-message" role="alert">{error}</p>}
@@ -251,7 +299,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
         <div className="studio-button-row">
           <button disabled={!history.past.length} onClick={undo}>Undo</button>
           <button disabled={!history.future.length} onClick={redo}>Redo</button>
-          <button onClick={() => { commit(defaults(source.image, settings.outputFormat)); setRatio(""); }}>Reset edits</button>
+          <button onClick={() => { edit(defaults(source.image, settings.outputFormat)); setRatio(""); }}>Reset edits</button>
         </div>
       </div>
       <div className="studio-layout">
@@ -262,7 +310,8 @@ export default function ImageConverter({ initialFormat = "png" }) {
               <option value="">Freeform</option><option value="1">Square | 1:1</option><option value="1.3333333333333333">Landscape | 4:3</option>
               <option value="1.7777777777777777">Widescreen | 16:9</option><option value="0.75">Portrait | 3:4</option>
             </select>
-            <button className="studio-crop-button" onClick={() => setView("crop")}>Crop visually</button>
+            <button className="studio-crop-button" aria-pressed={view === "crop"} aria-controls="image-crop-workspace" onClick={toggleCrop}>Crop visually</button>
+            {view === "crop" && <p className="studio-note">Crop mode is active. Use Back to preview above the image, click Crop visually again, or press Escape.</p>}
             <div className="studio-pairs">{numeric("cropX", "Crop X", 0)}{numeric("cropY", "Crop Y", 0)}
               {numeric("cropWidth", "Crop width")}{numeric("cropHeight", "Crop height")}</div>
             <Slider field="image-rotation" label={"Rotation (" + settings.rotation + " degrees)"} value={settings.rotation} min={0} max={270} step={90}
@@ -274,18 +323,18 @@ export default function ImageConverter({ initialFormat = "png" }) {
             <p className="studio-note">Crop first, then resize, flip, and rotate.</p>
           </fieldset>
           <fieldset><legend><span>02</span> Size</legend>
-            <label className="studio-check"><input type="checkbox" checked={locked} onChange={(event) => setLocked(event.target.checked)} /> Keep aspect ratio</label>
+            <label className="studio-check"><input type="checkbox" checked={locked} onChange={(event) => { leaveCrop(); setLocked(event.target.checked); }} /> Keep aspect ratio</label>
             <div className="studio-pairs">{numeric("resizeWidth", "Resize width")}{numeric("resizeHeight", "Resize height")}</div>
             <div className="studio-button-row">
-              <button onClick={() => commit({ ...settings, resizeWidth: settings.cropWidth, resizeHeight: settings.cropHeight })}>Crop size</button>
-              <button onClick={() => commit({ ...settings, resizeWidth: Math.max(1, Math.round(settings.cropWidth / 2)), resizeHeight: Math.max(1, Math.round(settings.cropHeight / 2)) })}>50%</button>
-              <button onClick={() => commit({ ...settings, resizeWidth: 1920, resizeHeight: Math.max(1, Math.round(1920 * settings.cropHeight / settings.cropWidth)) })}>1920 px wide</button>
+              <button onClick={() => edit({ ...settings, resizeWidth: settings.cropWidth, resizeHeight: settings.cropHeight })}>Crop size</button>
+              <button onClick={() => edit({ ...settings, resizeWidth: Math.max(1, Math.round(settings.cropWidth / 2)), resizeHeight: Math.max(1, Math.round(settings.cropHeight / 2)) })}>50%</button>
+              <button onClick={() => edit({ ...settings, resizeWidth: 1920, resizeHeight: Math.max(1, Math.round(1920 * settings.cropHeight / settings.cropWidth)) })}>1920 px wide</button>
             </div>
           </fieldset>
           <fieldset><legend><span>03</span> Color &amp; tone</legend>
             <div className="studio-looks">{Object.entries(LOOKS).map(([name, look]) => <button key={name}
               aria-pressed={Object.entries(look).every(([field, value]) => settings[field] === value)}
-              onClick={() => commit({ ...settings, ...look })}>{name}</button>)}</div>
+              onClick={() => edit({ ...settings, ...look })}>{name}</button>)}</div>
             <Slider field="brightness" label="Brightness" value={settings.brightness} min={-100} max={100} onChange={change} />
             <Slider field="contrast" label="Contrast" value={settings.contrast} min={-100} max={100} onChange={change} />
             <Slider field="saturation" label="Saturation" value={settings.saturation} min={0} max={200} onChange={change} />
@@ -310,34 +359,49 @@ export default function ImageConverter({ initialFormat = "png" }) {
             <p className="studio-note">ICO fits a 64 x 64 square without stretching. PNG quality is lossless, not adjustable.</p>
           </fieldset>
         </aside>
-        <main className="studio-workspace">
-          <button className="preview-expand" disabled={!ready || busy} onClick={() => setExpanded(true)}>Expand image preview</button>
+        <main className="studio-workspace" ref={workspaceRef} id="image-crop-workspace">
           {expanded && ready && !busy && <PreviewModal key={fingerprint + output.url} title="Image export preview" type="image"
-            url={output.url} width={output.width} height={output.height} onClose={() => setExpanded(false)}
+            url={output.url} width={output.width} height={output.height} onClose={() => setExpanded(false)} backLabel="Back to editor"
             onDownload={() => downloadBlob(output.blob, source.file.name.replace(/\.[^.]+$/, "") + "-converted." + extension)} />}
           <div className="studio-stage-toolbar">
             <div className="studio-button-row" role="group" aria-label="Preview mode">
-              <button aria-pressed={view === "output"} onClick={() => setView("output")}>Export preview</button>
-              <button aria-pressed={view === "crop"} onClick={() => setView("crop")}>Crop image</button>
+              <button aria-pressed={view === "output"} onClick={() => leaveCrop()}>Export preview</button>
+              <button aria-pressed={view === "crop"} onClick={toggleCrop}>Crop image</button>
             </div>
             {view === "output" && <div className="studio-button-row" role="group" aria-label="Preview zoom">
               <button aria-pressed={zoom === "fit"} onClick={() => setZoom("fit")}>Fit</button>
               <button aria-pressed={zoom === "actual"} onClick={() => setZoom("actual")}>100%</button>
+              <button className="preview-expand" disabled={!ready || busy} onClick={() => setExpanded(true)}>Expand image preview</button>
             </div>}
           </div>
+          {view === "crop" && <div className="studio-crop-toolbar" aria-label="Crop controls">
+            <div className="studio-crop-heading">
+              <button ref={cropBackRef} className="studio-back-button" onClick={() => leaveCrop(true)}><span aria-hidden="true">&larr;</span> Back to preview</button>
+              <span>Crop mode | Guides are not exported</span>
+            </div>
+            <div className="studio-button-row">
+              <button aria-pressed={drawMode} onClick={() => setDrawMode((current) => !current)}>Draw new crop</button>
+              <button onClick={resetCrop}>Reset crop</button>
+              <button aria-pressed={showGuides} onClick={() => setShowGuides((current) => !current)}>{showGuides ? "Hide crop guides" : "Show crop guides"}</button>
+            </div>
+            <button onClick={() => leaveCrop(true)}>Done cropping</button>
+            <p>{drawMode ? "Drag anywhere on the image to draw a new selection." : "Drag the selection to move it, or use the corner handles to resize it."}</p>
+          </div>}
           <div className={"studio-stage " + (view === "crop" ? "studio-crop-stage" : "")}>
-            {view === "crop" ? <div className="studio-crop-surface" aria-label="Visual crop editor"
+            {view === "crop" ? <div className="studio-crop-surface" aria-label="Visual crop editor" ref={cropSurfaceRef}
+              data-crop-mode={drawMode ? "draw" : "adjust"}
+              style={{ "--crop-aspect": source.image.naturalWidth / source.image.naturalHeight, "--crop-natural-width": source.image.naturalWidth + "px" }}
               onPointerDown={startCrop} onPointerMove={moveCrop} onPointerUp={(event) => endCrop(event)}
-              onPointerCancel={(event) => endCrop(event, true)}>
+              onPointerCancel={(event) => endCrop(event, true)} onLostPointerCapture={(event) => endCrop(event, true)}>
               <img src={source.url} alt="Original crop source" draggable={false} />
               {cropValid && <>
                 <svg className="studio-crop-shade" viewBox={"0 0 " + source.image.naturalWidth + " " + source.image.naturalHeight} aria-hidden="true">
                   <path fillRule="evenodd" d={"M0 0H" + source.image.naturalWidth + "V" + source.image.naturalHeight + "H0Z M" + settings.cropX + " " + settings.cropY + "h" + settings.cropWidth + "v" + settings.cropHeight + "h-" + settings.cropWidth + "Z"} />
                 </svg>
                 <button className="studio-crop-selection" data-crop-action="move" aria-label="Move crop selection"
-                  style={position} onKeyDown={keyboardCrop}><span /><span /></button>
+                  style={position} onKeyDown={keyboardCrop} disabled={drawMode}>{showGuides && <><span /><span /></>}</button>
                 {["nw", "ne", "sw", "se"].map((corner) => <button key={corner} className="studio-crop-handle"
-                  aria-label={"Resize crop " + corner} data-crop-action={corner} onKeyDown={keyboardCrop}
+                  aria-label={"Resize crop " + corner} data-crop-action={corner} onKeyDown={keyboardCrop} disabled={drawMode}
                   style={{ left: (settings.cropX + (corner.includes("e") ? settings.cropWidth : 0)) / source.image.naturalWidth * 100 + "%",
                     top: (settings.cropY + (corner.includes("s") ? settings.cropHeight : 0)) / source.image.naturalHeight * 100 + "%" }} />)}
               </>}
@@ -347,7 +411,7 @@ export default function ImageConverter({ initialFormat = "png" }) {
           </div>
           <div className="studio-preview-caption">
             <strong>{view === "crop" ? "Compose on the original" : "What you see is what you export"}</strong>
-            <p>{view === "crop" ? "Drag outside the selection to draw a crop. Drag inside to move it; use corner handles to resize. Arrow keys move focused controls; Shift moves 10 pixels. Visual crops update output dimensions." :
+            <p>{view === "crop" ? "Draw new crop lets you start anywhere, even inside the current selection. Arrow keys move focused crop controls; Shift moves 10 pixels. Edits update automatically; Done cropping shows the finished export. Guides are never downloaded. Large visual crops are scaled to the export limits." :
               "This preview is the encoded download, including quality and color adjustments. Checkerboard indicates transparency and is not exported. Browser export uses sRGB; displays and external viewers may differ."}</p>
           </div>
           <footer className="studio-export-footer">
