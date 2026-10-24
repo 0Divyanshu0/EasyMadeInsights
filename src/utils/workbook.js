@@ -144,12 +144,14 @@ function toNumber(value) {
     return null;
   }
 
-  const cleaned = value.replace(/[^0-9.-]/g, "");
-  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
-    return null;
-  }
-
-  const parsed = Number.parseFloat(cleaned);
+  let cleaned = value.trim();
+  const accountingNegative = /^\(.*\)$/.test(cleaned);
+  if (accountingNegative) cleaned = cleaned.slice(1, -1).trim();
+  cleaned = cleaned.replace(/^([+-]?)(?:USD|EUR|GBP|INR|JPY|[$\u20ac\u00a3\u20b9\u00a5])\s*/i, "$1");
+  // Validate the whole value: labels like "Group 11" and dates are not measures.
+  if (!/^[+-]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?%?$/i.test(cleaned)) return null;
+  const parsed = Number(cleaned.replace(/,/g, "").replace(/%$/, ""));
+  if (accountingNegative && Number.isFinite(parsed)) return -Math.abs(parsed);
   return Number.isFinite(parsed) ? parsed : null;
 }
 

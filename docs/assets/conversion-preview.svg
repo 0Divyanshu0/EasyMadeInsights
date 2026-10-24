@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="660" viewBox="0 0 1000 660" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">EasyMadeConversions workspace illustration</title>
+  <desc id="description">An illustrative file-tools workspace showing five tools, editable document pages, image crop controls, and export formats. Document conversions require a backend; image editing runs in the browser.</desc>
+  <defs><linearGradient id="background" x1="0" y1="0" x2="1000" y2="660" gradientUnits="userSpaceOnUse"><stop stop-color="#F8FAFC"/><stop offset="1" stop-color="#E0F2FE"/></linearGradient><linearGradient id="sky" x1="617" y1="290" x2="898" y2="427" gradientUnits="userSpaceOnUse"><stop stop-color="#BFDBFE"/><stop offset="1" stop-color="#38BDF8"/></linearGradient></defs>
+  <rect width="1000" height="660" rx="24" fill="url(#background)"/>
+  <g font-family="Segoe UI, Helvetica, sans-serif">
+    <text x="38" y="46" fill="#1D4ED8" font-size="16" font-weight="700" letter-spacing="2">02 / THE FILE TOOLS WORKSPACE</text>
+    <rect x="34" y="72" width="932" height="548" rx="18" fill="#0F172A"/>
+    <text x="62" y="119" fill="#F8FAFC" font-size="27" font-weight="700">EasyMadeConversions</text>
+    <text x="62" y="148" fill="#94A3B8" font-size="16">A focused place to convert, compare, and edit.</text>
+    <rect x="733" y="101" width="206" height="36" rx="9" fill="#172849" stroke="#334155"/>
+    <text x="836" y="124" fill="#BFDBFE" font-size="14" text-anchor="middle">Back to EasyMadeInsights</text>
+    <g fill="#172849" stroke="#334155"><rect x="62" y="173" width="163" height="45" rx="10"/><rect x="239" y="173" width="163" height="45" rx="10"/><rect x="416" y="173" width="163" height="45" rx="10"/><rect x="593" y="173" width="163" height="45" rx="10"/><rect x="770" y="173" width="168" height="45" rx="10"/></g>
+    <g fill="#BFDBFE" font-size="15" text-anchor="middle"><text x="143" y="202">PDF to Word</text><text x="320" y="202">Word to PDF</text><text x="497" y="202">Image studio</text><text x="674" y="202">Text comparison</text><text x="854" y="202">JWT decoder</text></g>
+    <rect x="62" y="243" width="424" height="270" rx="13" fill="#172849" stroke="#334155"/>
+    <text x="84" y="275" fill="#F8FAFC" font-size="20" font-weight="600">Readable document previews</text>
+    <rect x="88" y="296" width="167" height="191" rx="6" fill="white"/>
+    <text x="104" y="324" fill="#0F172A" font-size="16" font-weight="700">Original document</text>
+    <path d="M104 343H236M104 356H219M104 369H229M104 397H236M104 410H211M104 423H233M104 451H236M104 464H217" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+    <rect x="274" y="296" width="187" height="191" rx="6" fill="white"/>
+    <text x="292" y="324" fill="#0F172A" font-size="16" font-weight="700">Converted result</text>
+    <path d="M292 345H440M292 358H424M292 371H433" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+    <rect x="292" y="392" width="148" height="76" rx="3" stroke="#CBD5E1"/>
+    <path d="M292 418H440M292 443H440M362 392V468" stroke="#CBD5E1"/>
+    <path d="M302 405H351M372 405H431M302 431H344M372 431H425M302 455H350M372 455H430" stroke="#64748B" stroke-width="2"/>
+    <rect x="506" y="243" width="432" height="270" rx="13" fill="#172849" stroke="#334155"/>
+    <text x="528" y="275" fill="#F8FAFC" font-size="20" font-weight="600">Shape the image. Keep the pixels.</text>
+    <rect x="529" y="296" width="385" height="137" rx="8" fill="url(#sky)"/>
+    <circle cx="861" cy="323" r="16" fill="#FDE68A"/>
+    <path d="M529 411L609 325L692 418L766 347L855 433H529Z" fill="#2563EB"/>
+    <path d="M651 433L763 337L879 433Z" fill="#0C4A6E"/>
+    <rect x="601" y="305" width="259" height="115" stroke="white" stroke-width="2" stroke-dasharray="7 5"/>
+    <g fill="white"><rect x="597" y="301" width="8" height="8"/><rect x="856" y="301" width="8" height="8"/><rect x="597" y="416" width="8" height="8"/><rect x="856" y="416" width="8" height="8"/></g>
+    <g fill="#BFDBFE" font-size="14"><text x="532" y="463">Crop / Resize / Rotate / Tone</text><text x="532" y="488">PNG / JPG / WebP / ICO</text></g>
+    <rect x="62" y="535" width="876" height="60" rx="10" fill="#1E3A5F"/>
+    <text x="84" y="561" fill="#DBEAFE" font-size="15" font-weight="600">Preview before you export.</text>
+    <text x="84" y="582" fill="#93C5FD" font-size="13">Document tools use a backend. Images, text comparison, and JWT decoding run locally.</text>
+    <text x="500" y="645" fill="#64748B" font-size="13" text-anchor="middle">Illustrative preview / Not a screenshot or fidelity guarantee</text>
+  </g>
+</svg>

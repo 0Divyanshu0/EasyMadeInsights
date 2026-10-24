@@ -16,7 +16,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import AIInsightsPanel from "../components/AIInsightsPanel.jsx";
+import WorkbookTakeaways from "../components/WorkbookTakeaways";
+import SheetPreview from "../components/SheetPreview";
+import NumericReadinessNotice from "../components/NumericReadinessNotice";
+import { assessNumericReadiness } from "../utils/numericReadiness.js";
 import ChartCard from "../components/ChartCard.jsx";
 import FileUpload from "../components/FileUpload.jsx";
 import KPI from "../components/KPI.jsx";
@@ -172,12 +175,14 @@ function createSectionObserver(sectionRefs, onSectionChange) {
   return observer;
 }
 
-export default function Dashboard({ onSectionChange }) {
+export default function Dashboard({ onSectionChange, onSessionChange }) {
+  const [previewSheet, setPreviewSheet] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [message, setMessage] = useState(null);
   const [messageType, setMessageType] = useState("");
   const [loading, setLoading] = useState(false);
   const [workbookData, setWorkbookData] = useState(null);
+  const [dismissedReadinessSheets, setDismissedReadinessSheets] = useState(() => new Set());
   const [selectedSheet, setSelectedSheet] = useState("");
   const [selectedMetric, setSelectedMetric] = useState("");
   const [selectedBreakdown, setSelectedBreakdown] = useState("");
@@ -194,6 +199,11 @@ export default function Dashboard({ onSectionChange }) {
 
   const activeSheet = workbookData?.sheets[selectedSheet] ?? null;
   const hasUnsavedSession = Boolean(selectedFile || workbookData);
+
+  useEffect(() => {
+    onSessionChange?.(hasUnsavedSession);
+    return () => onSessionChange?.(false);
+  }, [hasUnsavedSession, onSessionChange]);
 
   useEffect(() => {
     if (!hasUnsavedSession) {
@@ -388,9 +398,10 @@ export default function Dashboard({ onSectionChange }) {
             raw: true,
           });
 
+          const numericReadiness = assessNumericReadiness(rows);
           const cleanedRows = cleanRows(rows);
 
-          return [sheetName, analyzeSheet(sheetName, cleanedRows)];
+          return [sheetName, { ...analyzeSheet(sheetName, cleanedRows), numericReadiness }];
         })
       );
 
@@ -398,6 +409,7 @@ export default function Dashboard({ onSectionChange }) {
       const summary = buildWorkbookSummary(sheets);
 
       setSelectedFile(file);
+      setDismissedReadinessSheets(new Set());
       setWorkbookData({
         sheets,
         sheetNames: workbook.SheetNames,
@@ -422,14 +434,8 @@ export default function Dashboard({ onSectionChange }) {
     }
   };
 
-  const handleAiUpcomingNotice = () => {
-    setMessage(
-      "AI executive summaries are still in progress and will be added as an upcoming feature."
-    );
-    setMessageType("info");
-  };
-
   const resetDashboard = () => {
+    setDismissedReadinessSheets(new Set());
     setSelectedFile(null);
     setMessage(null);
     setMessageType("");
@@ -440,6 +446,7 @@ export default function Dashboard({ onSectionChange }) {
 
   return (
     <div className="dashboard container">
+      {previewSheet && <SheetPreview sheet={previewSheet} onClose={() => setPreviewSheet(null)} />}
       <section className="dashboard-hero dashboard-section" id="upload" ref={uploadRef}>
         <div>
           <p className="eyebrow">Excel insights, simplified</p>
@@ -494,6 +501,10 @@ export default function Dashboard({ onSectionChange }) {
           onSelect={setSelectedSheet}
         />
       )}
+
+      {activeSheet && !dismissedReadinessSheets.has(selectedSheet) && <NumericReadinessNotice
+        assessment={activeSheet.numericReadiness} sheetName={selectedSheet}
+        onDismiss={() => setDismissedReadinessSheets((current) => new Set([...current, selectedSheet]))} />}
 
       <section id="overview" ref={overviewRef} className="dashboard-section">
         <div className="section-heading">
@@ -893,6 +904,8 @@ export default function Dashboard({ onSectionChange }) {
 
             <div className="insight-card insight-card-wide">
               <h3>Data preview</h3>
+              <button className="preview-expand" onClick={() => setPreviewSheet(activeSheet)}>Open full sheet preview</button>
+              <p>Quick look: first six rows and columns. Open the full preview to search and inspect all data.</p>
               {activeSheet.previewRows.length ? (
                 <div className="preview-table-wrap">
                   <table className="preview-table">
@@ -930,69 +943,7 @@ export default function Dashboard({ onSectionChange }) {
           <h2>Interpretation and guided takeaways</h2>
         </div>
 
-        <AIInsightsPanel
-          onNotify={handleAiUpcomingNotice}
-          disabled={!activeSheet}
-        />
-
-        {activeSheet && (
-          <section className="insights-grid">
-            <div className="insight-card">
-              <h3>Executive Summary</h3>
-              <div className="summary-stat-list">
-                <div className="summary-stat">
-                  <span className="summary-label">Columns</span>
-                  <strong>{activeSheet.columns.length}</strong>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-label">Primary metric</span>
-                  <strong>{activeSheet.primaryMetric ?? "Not found"}</strong>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-label">Top segment</span>
-                  <strong>{activeSheet.topCategory?.label ?? "Not found"}</strong>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-label">Best value</span>
-                  <strong>{activeSheet.topCategory?.valueDisplay ?? "--"}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="insight-card">
-              <h3>Key Insights</h3>
-              {activeSheet.narrativeInsights.length ? (
-                <ul className="insight-list">
-                  {activeSheet.narrativeInsights.map((insight) => (
-                    <li key={insight}>{insight}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>
-                  Add more structured numeric and category columns to generate
-                  stronger insights.
-                </p>
-              )}
-            </div>
-
-            <div className="insight-card">
-              <h3>Top Performers</h3>
-              {chartData.performance.length ? (
-                <div className="leaderboard">
-                  {chartData.performance.slice(0, 3).map((item, index) => (
-                    <div className="leaderboard-row" key={item.label}>
-                      <span className="leaderboard-rank">#{index + 1}</span>
-                      <span className="leaderboard-name">{item.label}</span>
-                      <strong>{formatMetricDisplay(item.value, selectedMetric)}</strong>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No ranked category performance is available yet.</p>
-              )}
-            </div>
-          </section>
-        )}
+        <WorkbookTakeaways sheet={activeSheet} metric={selectedMetric} breakdown={selectedBreakdown} />
       </section>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Routes, Route, useLocation, useNavigate, useBlocker } from "react-router-dom";
+import Dialog from "./components/Dialog";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
@@ -15,25 +16,29 @@ import "./styles/kpi.css";
 import "./styles/charts.css";
 import "./styles/loader.css";
 import "./styles/sheetselector.css";
-import "./styles/ai-insights.css";
 import "./styles/welcome.css";
 import "./styles/conversions.css";
 import "./styles/tools.css";
+import "./styles/dialogs.css";
 
 const THEME_KEY = "easy-made-insights-theme";
 const SITE_URL = "https://easymadeinsights.web.app";
 
+function normalizedPath(pathname) {
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
 const routeMeta = {
   "/": {
-    title: "EasyMadeInsights | Spreadsheet AI Insights",
+    title: "EasyMadeInsights | Spreadsheet Analytics",
     description:
-      "Analyze spreadsheets and turn raw business data into KPI dashboards, AI summaries, and actionable insights.",
+      "Analyze spreadsheets and turn raw business data into KPI dashboards, customizable charts, and local workbook takeaways.",
     schemaType: "WebApplication",
     name: "EasyMadeInsights",
     keywords: [
       "Excel analytics",
       "KPI dashboard",
-      "AI spreadsheet insights",
+      "spreadsheet insights",
       "business data analysis",
     ],
   },
@@ -101,6 +106,14 @@ function buildJsonLd(pathname) {
 
 function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const isConversions = normalizedPath(location.pathname) === "/conversions";
+  const isDashboard = normalizedPath(location.pathname) === "/";
+  const [hasWorkbook, setHasWorkbook] = useState(false);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    (normalizedPath(currentLocation.pathname) === "/conversions") !== (normalizedPath(nextLocation.pathname) === "/conversions")
+  );
+  const switchWorkspace = () => navigate(isDashboard ? "/conversions" : "/");
   const [theme, setTheme] = useState(getInitialTheme());
   const [showWelcome, setShowWelcome] = useState(true);
   const [activeSection, setActiveSection] = useState("upload");
@@ -130,7 +143,7 @@ function AppShell() {
     );
     const canonicalLink = document.querySelector('link[rel="canonical"]');
     const existingScript = document.querySelector("#app-schema");
-    const currentPath = location.pathname || "/";
+    const currentPath = normalizedPath(location.pathname);
     const pageMeta = routeMeta[currentPath] || routeMeta["/"];
     const canonicalUrl = `${SITE_URL}${currentPath}`;
 
@@ -188,13 +201,29 @@ function AppShell() {
   return (
     <>
       <WelcomeOverlay
-        visible={showWelcome}
+        visible={showWelcome && isDashboard}
         onDismiss={() => setShowWelcome(false)}
       />
 
+      {blocker.state === "blocked" && <Dialog role="alertdialog" className="workspace-confirmation"
+        title={isConversions ? "Switch to EasyMadeInsights?" : "Switch to EasyMadeConversions?"}
+        closeLabel="Stay in this workspace" onClose={() => blocker.reset()}>
+        <p>{isConversions
+          ? "Leaving this workspace clears selected files, edits, and conversion results. Download anything you want to keep before switching."
+          : hasWorkbook
+            ? "Your uploaded workbook, dashboard, and reporting selections will be cleared when you leave. You will need to upload the workbook again when you return."
+            : "You are moving to the file tools workspace. Spreadsheet navigation is only available in EasyMadeInsights."}</p>
+        <div className="tool-actions">
+          <button className="workspace-switch" onClick={() => blocker.reset()}>Stay here</button>
+          <button className="convert-btn" onClick={() => blocker.proceed()}>Switch workspace</button>
+        </div>
+      </Dialog>}
       <div className="layout">
         <Sidebar
           activeSection={activeSection}
+          isConversions={isConversions}
+          isDashboard={isDashboard}
+          onSwitchWorkspace={switchWorkspace}
           onNavigate={(sectionId) => {
             document.getElementById(sectionId)?.scrollIntoView({
               behavior: "smooth",
@@ -206,6 +235,8 @@ function AppShell() {
         <div className="main">
           <Navbar
             theme={theme}
+            isConversions={isConversions}
+            onSwitchWorkspace={switchWorkspace}
             onToggleTheme={() =>
               setTheme((currentTheme) =>
                 currentTheme === "light" ? "dark" : "light"
@@ -213,7 +244,7 @@ function AppShell() {
             }
           />
           <Routes>
-            <Route path="/" element={<Dashboard onSectionChange={setActiveSection} />} />
+            <Route path="/" element={<Dashboard onSectionChange={setActiveSection} onSessionChange={setHasWorkbook} />} />
             <Route path="/conversions" element={<EasyMadeConversions />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -223,10 +254,8 @@ function AppShell() {
   );
 }
 
+const router = createBrowserRouter([{ path: "*", element: <AppShell /> }]);
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AppShell />
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
